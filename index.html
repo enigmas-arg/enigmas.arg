@@ -25,7 +25,7 @@
             background-color: #000;
             color: var(--term-amber);
             font-family: var(--font-main);
-            height: 100vh;
+            height: 100%; /* Better for mobile */
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -352,6 +352,30 @@
             padding: 40px; display: none; flex-direction: column; z-index: 2000;
             transition: opacity 0.8s ease-in-out;
             box-shadow: inset 0 0 150px rgba(0,0,0,1);
+        }
+        @media (max-width: 768px) {
+            #terminal { padding: 15px; font-size: 0.85rem; padding-bottom: 50px; overflow-x: hidden; }
+            #cmd-input { font-size: 0.9rem; }
+            .ascii-art { font-size: 4px; }
+            .header-branding { overflow-x: hidden; }
+            .window-frame { width: 100%; height: 100%; max-width: 100%; max-height: 100%; border: none; }
+            .desktop-window { width: 100% !important; height: 100% !important; max-width: 100%; max-height: 100%; top: 0; left: 0; transform: none; border-radius: 0; border: none; }
+            .start-menu { width: 95%; left: 2.5%; bottom: 55px; }
+            .desktop-icons { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 15px; padding: 15px; }
+            .icon { width: 85px; }
+            .game-canvas-base { max-width: 100%; height: auto; aspect-ratio: 1/1; }
+            
+            /* Virtual Gamepad Styles */
+            .virtual-dpad { position: absolute; bottom: 20px; left: 20px; width: 150px; height: 150px; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 5px; opacity: 0.6; z-index: 100; touch-action: none; }
+            .v-btn { background: rgba(255, 204, 0, 0.2); border: 1px solid rgba(255, 204, 0, 0.5); border-radius: 50%; color: #ffcc00; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; user-select: none; -webkit-user-select: none; touch-action: none; }
+            .v-btn:active { background: rgba(255, 204, 0, 0.6); }
+            .v-up { grid-column: 2; grid-row: 1; }
+            .v-down { grid-column: 2; grid-row: 3; }
+            .v-left { grid-column: 1; grid-row: 2; }
+            .v-right { grid-column: 3; grid-row: 2; }
+            .v-action { position: absolute; bottom: 40px; right: 20px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255, 34, 0, 0.2); border: 2px solid rgba(255, 34, 0, 0.5); color: #ff2200; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; user-select: none; z-index: 100; touch-action: none; }
+            .v-action:active { background: rgba(255, 34, 0, 0.6); }
+            .v-sky-color { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.4); color: #fff; }
         }
 
     </style>
@@ -974,7 +998,7 @@
                 else if (key === 'Papelera de reciclaje') iconClass = 'trash';
                 
                 icon.innerHTML = `<div class="icon-img icon-${iconClass}"></div><div class="icon-label">${key}</div>`;
-                icon.ondblclick = () => {
+                const action = () => {
                     if (key === 'EAT-MANN.EXE') { openEat(); return; }
                     if (key === 'OJO_AMBAR.EXE') { openOjo(); return; }
                     if (key === 'SKYFALL.EXE') { openSky(); return; }
@@ -989,6 +1013,11 @@
                     else if (DATABASE[item]) openWindow(DATABASE[item]);
                     else if (DATABASE[key]) openWindow(DATABASE[key]);
                 };
+                if (window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window)) {
+                    icon.onclick = action;
+                } else {
+                    icon.ondblclick = action;
+                }
                 desktopIcons.appendChild(icon);
             });
         }
@@ -1018,7 +1047,12 @@
                 const row = document.createElement('div');
                 row.className = 'details-row';
                 row.innerHTML = `<div class="details-name"><div class="icon-img icon-${isSubFolder ? 'folder' : (type === 'mp4' ? 'vid' : (type === 'jpg' ? 'img-file' : 'txt'))}"></div>${isSubFolder ? key : (fileObj ? fileObj[currentLang].title : key)}</div><div class="details-type">${isSubFolder ? 'Folder' : type.toUpperCase() + ' File'}</div><div class="details-size">${fileObj && fileObj.private ? 'Encrypted' : 'Public'}</div>`;
-                row.ondblclick = (e) => { e.stopPropagation(); if (isSubFolder) openFolder(key, subItem); else if (fileObj) openWindow(fileObj); };
+                const rowAction = (e) => { e.stopPropagation(); if (isSubFolder) openFolder(key, subItem); else if (fileObj) openWindow(fileObj); };
+                if (window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window)) {
+                    row.onclick = rowAction;
+                } else {
+                    row.ondblclick = rowAction;
+                }
                 grid.appendChild(row);
             });
         }
@@ -1031,6 +1065,13 @@
                     <div class="game-ui-base" style="left:40px;">OBSESIONES: <span id="eat-score">0</span></div>
                     <div class="game-ui-base" style="right:40px;">ETAPA: <span id="eat-lvl">1</span></div>
                     <canvas id="eat-canvas" class="game-canvas-base"></canvas>
+                    ${('ontouchstart' in window || window.matchMedia('(max-width: 768px)').matches) ? `
+                    <div class="virtual-dpad" id="eat-dpad" style="display:none;">
+                        <div class="v-btn v-up" onpointerdown="window.eatDir({x:0, y:-1})">▲</div>
+                        <div class="v-btn v-left" onpointerdown="window.eatDir({x:-1, y:0})">◀</div>
+                        <div class="v-btn v-right" onpointerdown="window.eatDir({x:1, y:0})">▶</div>
+                        <div class="v-btn v-down" onpointerdown="window.eatDir({x:0, y:1})">▼</div>
+                    </div>` : ''}
                     <div id="eat-overlay" class="game-overlay-base" style="background:rgba(0,0,0,0.95);">
                         <h1 class="glitch" style="font-size: 3.5rem; margin: 0; text-shadow: 0 0 20px #f00;">EAT-MANN</h1>
                         <p style="letter-spacing: 10px;">973 . EHT . NAMUH . 973</p>
@@ -1082,6 +1123,8 @@
             window.startEat = () => {
                 const overlay = document.getElementById('eat-overlay');
                 if(overlay) overlay.style.display = 'none';
+                const dpad = document.getElementById('eat-dpad');
+                if(dpad) dpad.style.display = 'grid';
                 score = 0; level = 1;
                 player = { x: 1, y: 1, dir: { x: 0, y: 0 }, nextDir: { x: 0, y: 0 } };
                 document.getElementById('eat-score').textContent = score;
@@ -1090,6 +1133,7 @@
                 if (gameLoop) clearInterval(gameLoop);
                 gameLoop = setInterval(update, 130);
             };
+            window.eatDir = (dir) => { player.nextDir = dir; };
 
             function update() {
                 const nextX = player.x + player.nextDir.x;
@@ -1183,7 +1227,17 @@
             let score = 0, level = 1, sanity = 100, frame = 0, gameRunning = false;
             let bullets = [], fragments = [], mouseX = 300, mouseY = 300;
             
-            canvas.onmousemove = (e) => { const r = canvas.getBoundingClientRect(); mouseX = e.clientX - r.left; mouseY = e.clientY - r.top; };
+            const updateMouse = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / r.width;
+                const scaleY = canvas.height / r.height;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                mouseX = (clientX - r.left) * scaleX; 
+                mouseY = (clientY - r.top) * scaleY;
+            };
+            canvas.onmousemove = updateMouse;
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); updateMouse(e); }, {passive: false});
             
             class Bullet {
                 constructor(x, y, angle, speed) {
@@ -1254,6 +1308,12 @@
                     <div class="game-ui-base" style="left:40px;">BLASFEMIAS: <span id="sky-score">0</span></div>
                     <div class="game-ui-base" style="right:40px;">ETAPA: <span id="sky-lvl">1</span> | PECADOS: <span id="sky-lives">3</span></div>
                     <canvas id="sky-canvas" class="game-canvas-base" width="600" height="600"></canvas>
+                    ${('ontouchstart' in window || window.matchMedia('(max-width: 768px)').matches) ? `
+                    <div class="virtual-dpad" id="sky-dpad" style="display:none;">
+                        <div class="v-btn v-left v-sky-color" onpointerdown="window.skyDirStart(-1)" onpointerup="window.skyDirStop()" onpointerleave="window.skyDirStop()">◀</div>
+                        <div class="v-btn v-right v-sky-color" onpointerdown="window.skyDirStart(1)" onpointerup="window.skyDirStop()" onpointerleave="window.skyDirStop()">▶</div>
+                    </div>
+                    <div class="v-action" id="sky-action" style="display:none;" onpointerdown="window.skyShoot()">FIRE</div>` : ''}
                     <div id="sky-overlay" class="game-overlay-base" style="background:rgba(0,0,0,0.95);">
                         <h1 style="font-size: 3rem; margin:0; text-shadow:0 0 20px #ff2200;">CAÍDA DEL CIELO</h1>
                         <p style="margin-top:15px; opacity:0.7;">DERRIBA A LOS HIJOS DE LA LUZ.</p>
@@ -1301,7 +1361,19 @@
                 }
             }
 
-            window.startSky = () => { document.getElementById('sky-overlay').style.display = 'none'; score=0; level=1; lives=3; eb=[]; bullets=[]; spawnEnemies(); gameRunning=true; loop(); };
+            let moveDir = 0;
+            window.skyDirStart = (dir) => { moveDir = dir; };
+            window.skyDirStop = () => { moveDir = 0; };
+            window.skyShoot = () => { if(bullets.length<4) bullets.push({x:playerX, y:py-20}); };
+
+            window.startSky = () => { 
+                document.getElementById('sky-overlay').style.display = 'none'; 
+                const dpad = document.getElementById('sky-dpad');
+                const btn = document.getElementById('sky-action');
+                if(dpad) dpad.style.display = 'grid';
+                if(btn) btn.style.display = 'flex';
+                score=0; level=1; lives=3; eb=[]; bullets=[]; spawnEnemies(); gameRunning=true; loop(); 
+            };
             
             function spawnEnemies() {
                 enemies = [];
@@ -1310,6 +1382,10 @@
 
             function loop() {
                 if(!gameRunning) return; frame++; ctx.fillStyle = '#000'; ctx.fillRect(0,0,600,600);
+                
+                if (moveDir === -1 && playerX > 30) playerX -= 12;
+                if (moveDir === 1 && playerX < 570) playerX += 12;
+
                 ctx.fillStyle = '#ff2200'; ctx.shadowBlur=20; ctx.shadowColor='#ff2200';
                 ctx.beginPath(); ctx.moveTo(playerX-20, py+20); ctx.lineTo(playerX-15, py-5); ctx.lineTo(playerX, py-25); ctx.lineTo(playerX+15, py-5); ctx.lineTo(playerX+20, py+20); ctx.lineTo(playerX, py+10); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(playerX-12, py-15); ctx.lineTo(playerX-20, py-35); ctx.lineTo(playerX-5, py-18); ctx.moveTo(playerX+12, py-15); ctx.lineTo(playerX+20, py-35); ctx.lineTo(playerX+5, py-18); ctx.fill();
@@ -1477,6 +1553,7 @@
         }
 
         input.addEventListener('keydown', (e) => { if(e.key === 'Enter') { handleCommand(input.value); input.value = ''; } });
+        input.addEventListener('focus', () => { setTimeout(() => { terminal.scrollTop = terminal.scrollHeight; }, 300); });
         
         // Global Escape Key to close windows
         window.addEventListener('keydown', (e) => {
