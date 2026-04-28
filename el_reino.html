@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAT-MANN // 973-EHT-NAMUH</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --term-red: #ff0000;
+            --term-bg: #000000;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--term-bg);
+            color: var(--term-red);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        #game-container {
+            position: relative;
+            border: 2px solid var(--term-red);
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas { display: block; background: #000; image-rendering: pixelated; }
+
+        .ui {
+            position: absolute; top: -40px; width: 100%;
+            display: flex; justify-content: space-between;
+            font-size: 1.2rem; letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--term-red);
+        }
+
+        .overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.98);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; z-index: 20;
+            border: 1px solid var(--term-red);
+        }
+
+        .btn {
+            margin-top: 20px; padding: 15px 30px;
+            border: 1px solid var(--term-red);
+            background: transparent; color: var(--term-red);
+            cursor: pointer; font-family: inherit;
+            font-size: 1rem; transition: 0.3s;
+            font-weight: bold; letter-spacing: 2px;
+        }
+
+        .btn:hover { background: var(--term-red); color: #000; box-shadow: 0 0 20px var(--term-red); }
+
+        .glitch { animation: glitch 0.5s infinite linear alternate-reverse; }
+        @keyframes glitch { 0% { text-shadow: 2px 0 #00ffff; } 100% { text-shadow: -2px 0 #ff0000; } }
+
+        /* CRT Scanlines */
+        #game-container::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 10; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="ui">
+            <span>OBSESIONES: <span id="score">0</span></span>
+            <span>ETAPA: <span id="level-txt">1</span></span>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <div id="overlay" class="overlay">
+            <h1 class="glitch" style="font-size: 3.5rem; margin: 0; text-shadow: 0 0 20px #f00;">EAT-MANN</h1>
+            <p style="letter-spacing: 10px;">973 . EHT . NAMUH . 973</p>
+            <p style="font-size: 0.7rem; opacity: 0.7; margin-top: 20px;">EL CONSUMO ES OBLIGATORIO PARA LA TRASCENDENCIA</p>
+            <button class="btn" onclick="startGame()">INICIAR CONSUMO</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const tileSize = 30;
+        const rows = 15;
+        const cols = 20;
+        canvas.width = cols * tileSize;
+        canvas.height = rows * tileSize;
+
+        let gameInstance = null;
+        let score = 0;
+        let level = 1;
+        let player = { x: 1, y: 1, dir: { x: 0, y: 0 }, nextDir: { x: 0, y: 0 } };
+        let enemies = [];
+        let dots = [];
+        let maze = [];
+
+        function generateMaze() {
+            maze = Array.from({length: rows}, () => Array(cols).fill(1));
+            // Safety start area
+            for(let r=1; r<4; r++) for(let c=1; c<4; c++) maze[r][c] = 0;
+            
+            let x = 1, y = 1;
+            // 600 iterations = more path = less complexity
+            for(let i=0; i<600; i++) {
+                const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                const d = dirs[Math.floor(Math.random()*4)];
+                const nx = x + d.x, ny = y + d.y;
+                if (nx > 0 && nx < cols-1 && ny > 0 && ny < rows-1) {
+                    maze[ny][nx] = 0; x = nx; y = ny;
+                }
+            }
+            
+            dots = [];
+            for(let r=1; r<rows-1; r++) {
+                for(let c=1; c<cols-1; c++) {
+                    if (maze[r][c] === 0) dots.push({x: c, y: r, collected: false});
+                }
+            }
+            
+            enemies = [];
+            for(let i=0; i<level+1; i++) {
+                let ex = cols-2, ey = rows-2;
+                while(maze[ey][ex] === 1) { ex--; if(ex<4){ex=cols-2; ey--;} }
+                enemies.push({x: ex, y: ey, dir: {x: -1, y: 0}});
+            }
+        }
+
+        function startGame() {
+            document.getElementById('overlay').style.display = 'none';
+            score = 0; level = 1;
+            player = { x: 1, y: 1, dir: { x: 0, y: 0 }, nextDir: { x: 0, y: 0 } };
+            document.getElementById('score').textContent = score;
+            document.getElementById('level-txt').textContent = level;
+            generateMaze();
+            if (gameInstance) clearInterval(gameInstance);
+            gameInstance = setInterval(update, 130); // Faster player (15% faster)
+        }
+
+        let enemyMoveTicker = 0;
+        function update() {
+            const nextX = player.x + player.nextDir.x;
+            const nextY = player.y + player.nextDir.y;
+            if (maze[nextY] && maze[nextY][nextX] === 0) player.dir = player.nextDir;
+            if (maze[player.y + player.dir.y] && maze[player.y + player.dir.y][player.x + player.dir.x] === 0) {
+                player.x += player.dir.x; player.y += player.dir.y;
+            }
+
+            dots.forEach(d => {
+                if (d.x === player.x && d.y === player.y && !d.collected) {
+                    d.collected = true; score += 10; document.getElementById('score').textContent = score;
+                }
+            });
+
+            if (dots.every(d => d.collected)) {
+                level++;
+                if (level > 3) endGame('HAS TRASCENDIDO EL CONSUMO FINAL.');
+                else {
+                    document.getElementById('level-txt').textContent = level;
+                    player.x = 1; player.y = 1;
+                    player.dir = {x:0,y:0}; player.nextDir = {x:0,y:0};
+                    generateMaze();
+                }
+            }
+
+            // Slower enemies
+            enemyMoveTicker++;
+            if (enemyMoveTicker % 2 === 0) {
+                enemies.forEach(e => {
+                    const possibleDirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                    if (Math.random() > 0.6) {
+                        const d = possibleDirs[Math.floor(Math.random()*4)];
+                        if (maze[e.y + d.y] && maze[e.y + d.y][e.x + d.x] === 0) e.dir = d;
+                    }
+                    if (maze[e.y + e.dir.y] && maze[e.y + e.dir.y][e.x + e.dir.x] === 0) {
+                        e.x += e.dir.x; e.y += e.dir.y;
+                    }
+                });
+            }
+            
+            enemies.forEach(e => {
+                if (e.x === player.x && e.y === player.y) endGame('EL OLVIDO TE HA CONSUMIDO.');
+            });
+
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Walls as cryptic numbers
+            ctx.fillStyle = '#ff0000';
+            ctx.font = '20px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const wallChar = level === 1 ? '9' : (level === 2 ? '7' : '3');
+            for(let r=0; r<rows; r++) {
+                for(let c=0; c<cols; c++) {
+                    if (maze[r][c] === 1) ctx.fillText(wallChar, c*tileSize + tileSize/2, r*tileSize + tileSize/2);
+                }
+            }
+
+            // Obsessions
+            ctx.fillStyle = '#ff0000';
+            dots.forEach(d => { if (!d.collected) { ctx.beginPath(); ctx.arc(d.x*tileSize + tileSize/2, d.y*tileSize + tileSize/2, 2, 0, Math.PI*2); ctx.fill(); } });
+
+            // Goat Player
+            ctx.fillStyle = '#ff6600';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#ff6600';
+            const px = player.x*tileSize + tileSize/2;
+            const py = player.y*tileSize + tileSize/2;
+            ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(px-8, py-5); ctx.lineTo(px-15, py-18); ctx.lineTo(px-2, py-8);
+            ctx.moveTo(px+8, py-5); ctx.lineTo(px+15, py-18); ctx.lineTo(px+2, py-8);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Celestial Enemies
+            ctx.fillStyle = '#00ffff';
+            enemies.forEach(e => {
+                const ex = e.x*tileSize + tileSize/2;
+                const ey = e.y*tileSize + tileSize/2;
+                ctx.beginPath();
+                ctx.moveTo(ex-12, ey+12); ctx.lineTo(ex, ey-12); ctx.lineTo(ex+12, ey+12);
+                ctx.fill();
+                ctx.shadowBlur = 15; ctx.shadowColor = '#00ffff'; ctx.stroke(); ctx.shadowBlur = 0;
+            });
+        }
+
+        function endGame(msg) {
+            clearInterval(gameInstance);
+            gameInstance = null;
+            const overlay = document.getElementById('overlay');
+            overlay.innerHTML = `<h1 class="glitch" style="color:#ff0000; text-shadow: 0 0 20px #f00;">${msg}</h1><button class="btn" onclick="startGame()">REINTENTAR CONSUMO</button>`;
+            overlay.style.display = 'flex';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') player.nextDir = {x: 0, y: -1};
+            if (e.key === 'ArrowDown') player.nextDir = {x: 0, y: 1};
+            if (e.key === 'ArrowLeft') player.nextDir = {x: -1, y: 0};
+            if (e.key === 'ArrowRight') player.nextDir = {x: 1, y: 0};
+        });
+    </script>
+</body>
+</html>

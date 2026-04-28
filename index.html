@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENIGMAS ARGENTINOS | MIRROR SERVER</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --term-amber: #ffcc00;
+            --term-bright: #ffff00;
+            --term-orange: #ff6600;
+            --term-bg: #050500;
+            --term-glow: rgba(255, 204, 0, 0.4);
+            --scanline-color: rgba(255, 204, 0, 0.08);
+            --blood-orange: #ff4400;
+            --font-main: 'JetBrains+Mono', monospace;
+        }
+
+        * { box-sizing: border-box; cursor: crosshair; }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: #000;
+            color: var(--term-amber);
+            font-family: var(--font-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            position: relative;
+            width: 100%; height: 100%;
+            background: var(--term-bg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 150px rgba(0,0,0,1);
+        }
+
+        /* Screen SFX */
+        .grime {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at 50% 50%, rgba(40, 30, 0, 0.1) 0%, transparent 70%),
+                        url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+            opacity: 0.12; pointer-events: none; z-index: 10000;
+        }
+        .stains {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(ellipse at 80% 80%, rgba(136, 0, 0, 0.08) 0%, transparent 40%),
+                        radial-gradient(ellipse at 10% 20%, rgba(50, 20, 0, 0.1) 0%, transparent 40%);
+            pointer-events: none; z-index: 10001;
+        }
+        .crt-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(var(--scanline-color) 50%, rgba(0, 0, 0, 0.05) 50%);
+            background-size: 100% 3px; pointer-events: none; z-index: 10002;
+            animation: scanline 0.15s linear infinite;
+        }
+        @keyframes scanline { 0% { background-position: 0 0; } 100% { background-position: 0 3px; } }
+        .crt-vignette {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.92) 130%);
+            pointer-events: none; z-index: 10003;
+        }
+
+        #terminal {
+            flex: 1; padding: 40px 60px;
+            overflow-y: auto;
+            text-shadow: 0 0 5px var(--term-glow);
+            scrollbar-width: thin;
+            scrollbar-color: #333 transparent;
+            z-index: 10;
+        }
+
+        .line { margin-bottom: 10px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; opacity: 0.9; }
+
+        /* Header */
+        .header-branding { 
+            display: flex; flex-direction: column; align-items: flex-start; gap: 30px; 
+            width: 100%; margin-bottom: 40px; 
+            border-bottom: 1px solid rgba(255, 204, 0, 0.15); padding-bottom: 30px;
+            position: relative;
+        }
+
+        .lang-selector {
+            display: flex; gap: 0; 
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            background: rgba(20, 20, 0, 0.8);
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.1);
+            margin-top: 15px;
+            width: fit-content;
+        }
+        .lang-btn { 
+            padding: 8px 15px; font-size: 0.8rem; cursor: pointer; transition: all 0.3s;
+            border-right: 1px solid rgba(255, 204, 0, 0.2); color: #4a4a4a;
+        }
+        .lang-btn:hover { background: rgba(255, 204, 0, 0.1); color: var(--term-bright); }
+        /* --- MINIGAME STYLES --- */
+        /* --- MINIGAME STYLES (RESTORED IDENTITIES) --- */
+        .game-window-body { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .game-canvas-base { border: 2px solid currentColor; background: #000; image-rendering: pixelated; }
+        .game-ui-base { position: absolute; top: 20px; font-family: 'JetBrains Mono', monospace; pointer-events: none; z-index: 5; font-size: 0.9rem; }
+        .game-overlay-base { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 20; border: 1px solid currentColor; }
+        
+        #eat-mann-container { color: #ff0000; }
+        #ojo-container { color: #000000; background: #ffb000; }
+        #sky-container { color: #ff2200; }
+        .game-btn { margin-top: 20px; padding: 10px 20px; border: 1px solid #ff0000; background: transparent; color: #ff0000; cursor: pointer; text-transform: uppercase; font-weight: bold; letter-spacing: 2px; }
+        .game-btn:hover { background: #ff0000; color: #000; box-shadow: 0 0 20px #ff0000; }
+        /* CRT Scanlines Effect */
+        .scanlines::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 10; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+
+        .lang-btn.active { background: rgba(255, 204, 0, 0.2); color: #fff; text-shadow: 0 0 10px var(--term-bright); font-weight: bold; }
+
+        .ascii-art { font-size: 9px; line-height: 1.1; margin: 0; white-space: pre; color: var(--term-amber); }
+        .highlight-arg { color: #fff; text-shadow: 0 0 20px #fff, 0 0 40px var(--term-orange); filter: brightness(1.7); }
+        .logo-smile { font-size: 9px; line-height: 1.1; color: var(--term-amber); opacity: 0.6; white-space: pre; }
+
+        .system-msg { font-weight: bold; color: #fff; background: rgba(255, 102, 0, 0.5); padding: 5px 15px; display: inline-block; margin: 15px 0; border-left: 6px solid var(--blood-orange); text-transform: uppercase; }
+        .nav-hint { color: #fff; background: rgba(255, 204, 0, 0.2); padding: 3px 10px; font-size: 0.8rem; display: inline-block; margin-bottom: 15px; border: 1px dashed var(--term-amber); }
+
+        .prompt-line { display: flex; margin-top: 40px; align-items: center; }
+        .prompt { margin-right: 15px; user-select: none; color: #fff; font-weight: bold; }
+        #cmd-input { background: transparent; border: none; color: var(--term-bright); font-family: var(--font-main); font-size: 1.1rem; flex: 1; outline: none; text-shadow: 0 0 8px var(--term-glow); }
+
+        .disclaimer-box { 
+            background: rgba(255, 102, 0, 0.1); 
+            border: 1px solid rgba(255, 102, 0, 0.3); 
+            padding: 15px; 
+            margin-top: 15px; 
+            font-size: 0.85rem; 
+            line-height: 1.4; 
+            color: rgba(255, 255, 0, 0.7);
+            max-width: 800px;
+        }
+        .redacted { background: #222; color: #222; user-select: none; }
+        .clickable-file { display: block; margin-bottom: 8px; text-decoration: underline; cursor: pointer; color: var(--term-bright); }
+        .clickable-file:hover { color: #fff; text-shadow: 0 0 10px #fff; }
+        .censored-file { display: block; margin-bottom: 8px; color: #333; background: #000; text-decoration: none; cursor: pointer; opacity: 0.8; }
+        .censored-file span { background: #222; color: #222; padding: 0 5px; }
+        .category-header { color: #666; margin: 30px 0 15px 0; display: block; width: 100%; font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; border-top: 1px solid #111; padding-top: 20px; }
+
+        /* Window System */
+        #window-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none; justify-content: center; align-items: center; z-index: 8000;
+        }
+        .window-frame {
+            border: 2px solid #553300; background: #000;
+            width: 700px; max-width: 95%; max-height: 85%;
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 60px rgba(0,0,0,1);
+        }
+        .window-header { background: #1a1a00; color: #888; padding: 10px 20px; font-size: 0.8rem; display: flex; justify-content: space-between; border-bottom: 1px solid #332200; }
+        .window-content { padding: 30px; overflow-y: auto; flex: 1; color: #aaa; font-size: 0.9rem; }
+        .window-content h1 { font-size: 1.2rem; color: #fff; border-bottom: 2px solid var(--term-orange); padding-bottom: 10px; margin-bottom: 15px; }
+        .window-content h2 { font-size: 1rem; color: var(--term-amber); margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .format-pdf h1 { color: #fff; border-bottom: 2px solid var(--term-orange); padding-bottom: 10px; }
+        .format-txt { white-space: pre-wrap; color: var(--term-amber); line-height: 1.6; }
+        .close-btn { cursor: pointer; color: #800; text-decoration: underline; }
+
+        /* Unified Memory System (8-pads) */
+        #captcha-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9000;
+        }
+        .captcha-window {
+            background: #000; border: 2px solid var(--term-amber); padding: 30px; width: 450px;
+            box-shadow: 0 0 50px rgba(255, 204, 0, 0.2); text-align: center;
+        }
+        .simon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 25px 0; }
+        .simon-pad { 
+            width: 100%; aspect-ratio: 1; border: 1px solid #332200; cursor: pointer; 
+            background: rgba(255, 204, 0, 0.05); transition: all 0.1s;
+        }
+        .simon-pad.active { background: var(--term-bright); box-shadow: 0 0 30px var(--term-bright); border-color: #fff; }
+        .simon-pad:hover { background: rgba(255, 204, 0, 0.1); border-color: var(--term-amber); }
+
+        .glitch-text { animation: glitch 3s linear infinite; }
+        @keyframes glitch { 2%, 64% { transform: translate(2px, 0); } 4%, 60% { transform: translate(-2px, 0); } 62% { transform: translate(0, 0) skew(5deg); } }
+
+        #desktop-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000 url('media/franca_desktop.png') no-repeat center center;
+            background-size: cover;
+            display: none; flex-direction: column; z-index: 50;
+            font-family: var(--font-main);
+            overflow: hidden;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .desktop-icons {
+            flex: 1; padding: 30px;
+            display: grid; grid-template-columns: repeat(2, 110px);
+            grid-template-rows: repeat(auto-fill, 110px);
+            gap: 25px; align-content: flex-start;
+            z-index: 60;
+        }
+
+        .icon {
+            width: 110px; display: flex; flex-direction: column; align-items: center;
+            text-align: center; cursor: pointer; color: #eee;
+            text-shadow: 1px 1px 2px #000;
+            transition: all 0.2s;
+            padding: 10px 5px; border: 1px solid transparent;
+            overflow: hidden;
+        }
+        .icon:hover { background: rgba(255, 255, 255, 0.1); border: 1px dotted #888; }
+        .icon-img {
+            width: 32px; height: 32px; margin-bottom: 5px;
+            image-rendering: pixelated;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        
+        .icon-folder { background-image: url('https://img.icons8.com/color/48/000000/folder-invoices--v1.png'); filter: grayscale(0.5) contrast(1.2); }
+        .icon-txt { background-image: url('https://img.icons8.com/color/48/000000/txt.png'); filter: grayscale(0.5); }
+        .icon-img-file { background-image: url('https://img.icons8.com/color/48/000000/image.png'); filter: grayscale(0.5); }
+        .icon-vid { background-image: url('https://img.icons8.com/color/48/000000/video-file.png'); filter: grayscale(0.5); }
+        .icon-app { background-image: url('https://img.icons8.com/color/48/000000/console.png'); filter: sepia(1) hue-rotate(90deg); }
+        
+        .icon-folder-img { background-image: url('https://img.icons8.com/color/48/000000/image-gallery.png'); filter: grayscale(0.4) contrast(1.1); }
+        .icon-folder-vid { background-image: url('https://img.icons8.com/color/48/000000/movie-projector.png'); filter: grayscale(0.4) contrast(1.1); }
+        .icon-trash { background-image: url('https://img.icons8.com/color/48/000000/trash.png'); filter: grayscale(0.4) contrast(1.1); }
+        
+        .icon-exe { background-image: url('https://img.icons8.com/color/48/000000/console.png'); filter: invert(0.8) sepia(1) hue-rotate(50deg); }
+
+        .icon-label { 
+            font-size: 0.65rem; width: 100%;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden; text-overflow: ellipsis;
+            word-wrap: break-word; font-weight: 400; line-height: 1.3;
+            margin-top: 5px;
+        }
+
+        .taskbar {
+            height: 45px; background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; align-items: center; padding: 0 15px;
+            z-index: 5000; color: #fff;
+        }
+        .start-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px 14px; font-weight: 500; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            font-family: var(--font-main); color: #fff;
+            transition: all 0.2s;
+        }
+        .start-btn:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.2); }
+        .start-btn:active { transform: scale(0.96); }
+
+        .taskbar-apps { flex: 1; display: flex; gap: 15px; padding-left: 20px; }
+        .taskbar-app-icon { 
+            font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .taskbar-app-icon:hover { opacity: 1; transform: translateY(-2px); }
+
+        .taskbar-clock {
+            font-size: 0.8rem; color: #aaa;
+            margin-left: auto; letter-spacing: 1px;
+        }
+
+        /* Modern Start Menu */
+        .start-menu {
+            position: absolute; bottom: 55px; left: 10px; width: 320px;
+            background: rgba(15, 15, 15, 0.98);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px; display: none; flex-direction: row;
+            overflow: hidden; z-index: 6000; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+        .start-menu-sidebar { width: 50px; background: rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 20px; }
+        .start-menu-content { flex: 1; padding: 20px; }
+        .start-section { margin-bottom: 20px; }
+        .start-section h4 { font-size: 0.65rem; color: #555; margin-bottom: 10px; letter-spacing: 1px; }
+        .start-item { 
+            padding: 10px; border-radius: 6px; cursor: pointer; 
+            display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #ccc;
+            transition: background 0.2s;
+        }
+        .start-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .start-item span { font-size: 1.1rem; }
+
+        /* Fullscreen Modern Dark Windows */
+        .desktop-window {
+            position: fixed; top: 50%; left: 50%; width: 850px; height: 750px;
+            transform: translate(-50%, -50%);
+            background: rgba(12, 12, 12, 0.98);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 4000; display: none; flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; box-shadow: 0 30px 100px rgba(0,0,0,0.9);
+            animation: windowFadeIn 0.3s ease-out;
+        }
+        @keyframes windowFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .window-title-bar {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px 25px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem; color: #888;
+        }
+        .window-controls { display: flex; gap: 12px; }
+        .win-btn { 
+            width: 28px; height: 28px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.05); color: #666;
+        }
+        .win-btn:hover { background: rgba(232, 17, 35, 0.8); color: #fff; }
+        .window-body { padding: 20px; color: #ddd; flex: 1; overflow-y: auto; }
+        .folder-grid { display: flex; flex-direction: column; }
+        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; justify-items: center; }
+        .details-header { 
+            display: grid; grid-template-columns: 2fr 1fr 1fr; 
+            padding: 10px 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .details-row {
+            display: grid; grid-template-columns: 2fr 1fr 1fr;
+            padding: 10px 15px; cursor: pointer; transition: background 0.1s;
+            align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .details-row:hover { background: rgba(255, 255, 255, 0.08); }
+        .details-row .icon-img { width: 16px; height: 16px; margin-right: 12px; margin-bottom: 0; display: inline-block; }
+        .details-name { display: flex; align-items: center; font-size: 0.85rem; color: #ccc; }
+        .details-type, .details-size { font-size: 0.75rem; color: #666; }
+
+        .desktop-active .grime, .desktop-active .stains, .desktop-active .crt-overlay, .desktop-active .crt-vignette { opacity: 0; visibility: hidden; transition: opacity 1s ease; }
+
+
+        .boot-sequence {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--term-bg); color: var(--term-amber); font-family: var(--font-main);
+            text-shadow: 0 0 5px var(--term-glow);
+            padding: 40px; display: none; flex-direction: column; z-index: 2000;
+            transition: opacity 0.8s ease-in-out;
+            box-shadow: inset 0 0 150px rgba(0,0,0,1);
+        }
+
+    </style>
+</head>
+<body id="body">
+    <div class="grime"></div><div class="stains"></div><div class="crt-overlay"></div><div class="crt-vignette"></div>
+
+    <div class="container" id="main-container">
+
+        <div id="terminal">
+            <div id="dynamic-header"></div>
+            <div id="output-header" style="margin-top: 20px;"></div>
+            <div id="output"></div>
+            <div class="prompt-line">
+                <span class="prompt" id="term-prompt">backdoor@ff.recovery:</span>
+                <input type="text" id="cmd-input" autofocus autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <div id="desktop-container">
+        <div class="desktop-icons" id="desktop-icons"></div>
+        
+        <div id="start-menu" class="start-menu">
+            <div class="start-menu-sidebar">
+                <div style="margin-top:auto; opacity:0.5; font-size:1.2rem;">⚙️</div>
+                <div style="opacity:0.5; font-size:1.2rem;">👤</div>
+            </div>
+            <div class="start-menu-content">
+                <div class="start-section">
+                    <h4>PROGRAMS</h4>
+                    <div class="start-item" onclick="openApp('video')"><span>🎬</span> Video Player</div>
+                    <div class="start-item" onclick="openApp('image')"><span>🖼️</span> Photo Gallery</div>
+                    <div class="start-item" onclick="openApp('txt')"><span>📝</span> NotePad</div>
+                    <div class="start-item" onclick="openGame()"><span>🎮</span> EAT-MANN.EXE</div>
+                    <div class="start-item" onclick="openOjo()"><span>👁️</span> OJO_AMBAR.EXE</div>
+                    <div class="start-item" onclick="openSky()"><span>🏹</span> SKYFALL.EXE</div>
+                </div>
+                <div class="start-section">
+                    <h4>RECENT DOCUMENTS</h4>
+                    <div id="recent-files-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="taskbar">
+            <div class="start-btn" onclick="toggleStartMenu()">
+                <div style="width:14px; height:14px; border:2px solid #fff; border-radius:2px;"></div>
+                Start
+            </div>
+            <div class="taskbar-apps">
+                <div class="taskbar-app-icon" title="Video Player" onclick="openApp('video')">🎬</div>
+                <div class="taskbar-app-icon" title="Photo Gallery" onclick="openApp('image')">🖼️</div>
+                <div class="taskbar-app-icon" title="NotePad" onclick="openApp('txt')">📝</div>
+            </div>
+            <div class="taskbar-clock" id="taskbar-clock">16:20</div>
+        </div>
+    </div>
+
+    <div class="boot-sequence" id="boot-sequence"></div>
+
+
+    <div id="window-overlay">
+        <div class="window-frame">
+            <div class="window-header">
+                <span id="window-title">SYSTEM_FILE.raw</span>
+                <span class="close-btn" onclick="closeWindow()">CLOSE_WINDOW [X]</span>
+            </div>
+            <div class="window-content" id="window-content"></div>
+        </div>
+    </div>
+
+    <div id="captcha-overlay">
+        <div class="captcha-window">
+            <h2 id="captcha-msg">[HUMANITY_VERIFICATION]</h2>
+            <p id="captcha-hint">WATCH THE SEQUENCE</p>
+            <div class="simon-grid">
+                <div class="simon-pad" onclick="MemorySystem.click(0)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(1)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(2)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(3)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(4)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(5)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(6)"></div>
+                <div class="simon-pad" onclick="MemorySystem.click(7)"></div>
+            </div>
+            <div class="line" style="font-size:0.7rem; color:#555;">[!] ERROR: AUTH_LEVEL_3_REQUIRED</div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('cmd-input');
+        const output = document.getElementById('output');
+        const dynamicHeader = document.getElementById('dynamic-header');
+        const outputHeader = document.getElementById('output-header');
+        const termPrompt = document.getElementById('term-prompt');
+        const terminal = document.getElementById('terminal');
+        const windowOverlay = document.getElementById('window-overlay');
+        const windowContent = document.getElementById('window-content');
+        const windowTitle = document.getElementById('window-title');
+        const captchaOverlay = document.getElementById('captcha-overlay');
+
+        let isUnlocked = false;
+        let currentLang = 'es';
+        let humanVerified = false; // Global verified (for terminal/root)
+        let unlockedFolders = new Set(); // Per-folder verification
+        let pendingFile = null;
+        let isWaitingForKey = false;
+
+        const LOCALES = {
+            es: {
+                title: `███████╗███╗   ██╗██╗ ██████╗ ███╗   ███╗ █████╗ ███████╗
+██╔════╝████╗  ██║██║██╔════╝ ████╗ ████║██╔══██╗██╔════╝
+█████╗  ██╔██╗ ██║██║██║  ███╗██╔████╔██║███████║███████╗
+██╔══╝  ██║╚██╗██║██║██║   ██║██║╚██╔╝██║██╔══██║╚════██║
+███████╗██║ ╚████║██║╚██████╔╝██║ ╚═╝ ██║██║  ██║███████║
+╚══════╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝
+
+<span class="highlight-arg"> █████╗ ██████╗  ██████╗ ███████╗███╗   ██╗████████╗██╗███╗   ██╗ ██████╗ ███████╗
+██╔══██╗██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔═══██╗██╔════╝
+███████║██████╔╝██║  ███╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║██║   ██║███████╗
+██╔══██║██╔══██╗██║   ██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██║   ██║╚════██║
+██║  ██║██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ██║██║ ╚████║╚██████╔╝███████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝</span>`,
+                system_recovered: "SISTEMA RECUPERADO - F.F.RECOVERY.BAK",
+                ip_relay: "IP_RELAY: [190.***.***.**6]",
+                status: "ESTADO: ONLINE",
+                hint: "AYUDA: Escribe 'enter_remote' para acceder al escritorio.",
+                boot_sistema: "MIRROR_GATEWAY: F.F._RECOVERY v2.1 activo.",
+                boot_log: "STATUS: Escaneando terminal física de ****** ******...",
+                boot_idx: "Conexión establecida. Se requiere autorización de nivel 3.",
+                disclaimer: "ADVERTENCIA: Este es un punto de acceso remoto no oficial. Conexión establecida mediante el backdoor 'F.F. RECOVERY'. Usted está accediendo a la terminal física de ****** ******, incautada como evidencia por el Departamento de Policía de la jurisdicción que aplica al caso de su desaparición. Proceda con cautela y bajo su propio riesgo.",
+                prompt: "backdoor@ff.recovery:/#",
+                help_cat: "Comandos: status, enter_remote, login [PASSWORD], ls, clear, help",
+                unlock_hint: "[!] PISTA: La identidad de Franca en 1337 (F.F.).",
+                auth_prompt: "BACKDOOR_KEY > ",
+                grid_msg: "Desbloqueo de terminal activa. Memoriza.",
+                captcha_p: "Selecciona los fragmentos de",
+                captcha_obj: "MEMORIA RESIDUAL",
+                captcha_btn: "ACCEDER",
+                cat_public: "RECURSOS",
+                cat_private: "ENCRIPTADO",
+                type_text: "DOCS",
+                type_image: "IMG",
+                type_video: "VID"
+            },
+            en: {
+                title: ` █████╗ ██████╗  ██████╗ ███████╗███╗   ██╗████████╗██╗███╗   ██╗███████╗
+██╔══██╗██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔════╝
+███████║██████╔╝██║  ███╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║█████╗  
+██╔══██║██╔══██╗██║   ██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝  
+██║  ██║██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝
+
+<span class="highlight-arg">███████╗███╗   ██╗██╗ ██████╗ ███╗   ███╗ █████╗ ███████╗
+██╔════╝████╗  ██║██║██╔════╝ ████╗ ████║██╔══██╗██╔════╝
+█████╗  ██╔██╗ ██║██║██║  ███╗██╔████╔██║█████╗  ███████╗
+██╔══╝  ██║╚██╗██║██║██║   ██║██║╚██╔╝██║██╔══╝  ╚════██║
+███████╗██║ ╚████║██║╚██████╔╝██║ ╚═╝ ██║███████╗███████║
+╚══════╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝</span>`,
+                system_recovered: "SYSTEM RECOVERED - F.F.RECOVERY.BAK",
+                ip_relay: "IP_RELAY: [190.***.***.**6]",
+                status: "STATUS: ONLINE",
+                hint: "HELP: Type 'enter_remote' to access the desktop.",
+                boot_sistema: "MIRROR_GATEWAY: F.F._RECOVERY v2.1 active.",
+                boot_log: "STATUS: Scanning physical terminal of ****** ******...",
+                boot_idx: "Connection established. Level 3 authorization required.",
+                disclaimer: "WARNING: This is an unofficial remote access point. Connection established via 'F.F. RECOVERY' backdoor. You are accessing the physical terminal of ****** ******, seized as evidence by the Police Department of the jurisdiction applying to the disappearance case. Proceed with caution and at your own risk.",
+                prompt: "backdoor@ff.recovery:/#",
+                help_cat: "Commands: status, enter_remote, login [PASSWORD], ls, clear, help",
+                unlock_hint: "[!] HINT: Franca's 1337 identity (F.F.).",
+                auth_prompt: "BACKDOOR_KEY > ",
+                grid_msg: "Terminal unlock active. Memorize.",
+                captcha_p: "Select fragments of",
+                captcha_obj: "RESIDUAL MEMORY",
+                captcha_btn: "ACCESS",
+                cat_public: "RESOURCES",
+                cat_private: "ENCRYPTED",
+                type_text: "DOCS",
+                type_image: "IMG",
+                type_video: "VID"
+            },
+            fr: {
+                title: `███████╗███╗   ██╗██╗ ██████╗ ███╗   ███╗███████╗███████╗
+██╔════╝████╗  ██║██║██╔════╝ ████╗ ████║██╔════╝██╔════╝
+█████╗  ██╔██╗ ██║██║██║  ███╗██╔████╔██║█████╗  ███████╗
+██╔══╝  ██║╚██╗██║██║██║   ██║██║╚██╔╝██║██╔══╝  ╚════██║
+███████╗██║ ╚████║██║╚██████╔╝██║ ╚═╝ ██║███████╗███████║
+╚══════╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝
+
+<span class="highlight-arg"> █████╗ ██████╗  ██████╗ ███████╗███╗   ██╗████████╗██╗███╗   ██╗███████╗ ███████╗
+██╔══██╗██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔════╝ ██╔════╝
+███████║██████╔╝██║  ███╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║█████╗   ███████╗
+██╔══██║██╔══██╗██║   ██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝   ╚════██║
+██║  ██║██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗ ███████║
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝ ╚══════╝</span>`,
+                system_recovered: "SYSTÈME RÉCUPÉRÉ - F.F.RECOVERY.BAK",
+                ip_relay: "IP_RELAY : [190.***.***.**6]",
+                status: "ÉTAT : EN LIGNE",
+                hint: "AIDE : Tapez 'enter_remote' pour accéder au bureau.",
+                boot_sistema: "MIRROR_GATEWAY: F.F._RECOVERY v2.1 actif.",
+                boot_log: "STATUS: Analyse du terminal physique de ****** ******...",
+                boot_idx: "Connexion établie. Autorisation de niveau 3 requise.",
+                disclaimer: "AVERTISSEMENT : Ceci est un point d'accès à distance non officiel. Connexion établie via le backdoor 'F.F. RECOVERY'. Vous accédez au terminal physique de ****** ******, saisi comme preuve par le département de police de la juridiction s'appliquant au cas de sa disparition. Procédez avec prudence et à vos propres risques.",
+                prompt: "backdoor@ff.recovery:/#",
+                help_cat: "Commandes: status, enter_remote, login [PASSWORD], ls, clear, help",
+                unlock_hint: "[!] INDICE: L'identité 1337 de Franca (F.F.).",
+                auth_prompt: "BACKDOOR_KEY > ",
+                grid_msg: "Déverrouillage terminal actif. Mémorisez.",
+                captcha_p: "Sélectionnez des fragments de",
+                captcha_obj: "MÉMOIRE RÉSIDUELLE",
+                captcha_btn: "ACCÈDER",
+                cat_public: "RESSOURCES",
+                cat_private: "CHIFFRÉ",
+                type_text: "DOCS",
+                type_image: "IMG",
+                type_video: "VID"
+            },
+            jp: {
+                title: ` █████╗ ██████╗  ██████╗ ███████╗███╗   ██╗████████╗██╗███╗   ██╗███████╗
+██╔══██╗██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔════╝
+███████║██████╔╝██║  ███╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║█████╗  
+██╔══██║██╔══██╗██║   ██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝  
+██║  ██║██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗
+╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝
+
+<span class="highlight-arg">███████╗███╗   ██╗██╗ ██████╗ ███╗   ███╗ █████╗ ███████╗
+██╔════╝████╗  ██║██║██╔════╝ ████╗ ████║██╔══██╗██╔════╝
+█████╗  ██╔██╗ ██║██║██║  ███╗██╔████╔██║███████║███████╗
+██╔══╝  ██║╚██╗██║██║██║   ██║██║╚██╔╝██║██╔══██║╚════██║
+███████╗██║ ╚████║██║╚██████╔╝██║ ╚═╝ ██║██║  ██║███████║
+╚══════╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝</span>`,
+                system_recovered: "システム復旧 - F.F.RECOVERY.BAK",
+                ip_relay: "IPリレー：[190.***.***.**6]",
+                status: "ステータス：オンライン",
+                hint: "ヘルプ：「enter_remote」と入力してデスクトップにアクセスします。",
+                boot_sistema: "MIRROR_GATEWAY: F.F._RECOVERY v2.1 有効。",
+                boot_log: "STATUS: ****** ****** の物理端末をスキャン中...",
+                boot_idx: "接続が確立されました。レベル3の承認が必要です。",
+                disclaimer: "警告：これは非公式のリモートアクセスポイントです。'F.F. RECOVERY'バックドアを介して接続が確立されました。あなたは、失踪事件に適用される管轄の警察署によって証拠として押収された ****** ****** の物理端末にアクセスしています。慎重に、自己責任で進めてください。",
+                prompt: "backdoor@ff.recovery:/#",
+                help_cat: "コマンド: status, enter_remote, login [PASSWORD], ls, clear, help",
+                unlock_hint: "[!] ヒント: フランカの1337アイデンティティ (F.F.)。",
+                auth_prompt: "BACKDOOR_KEY > ",
+                grid_msg: "ターミナルロック解除が有効。記憶してください。",
+                captcha_p: "断片を選択してください",
+                captcha_obj: "残留メモリ",
+                captcha_btn: "アクセス",
+                cat_public: "リソース",
+                cat_private: "暗号化済み",
+                type_text: "ドキュメント",
+                type_image: "画像",
+                type_video: "動画"
+            }
+        };
+
+        const DATABASE = {
+            '001_PACHECO_SCR.txt': { type: 'txt', es: { title: '001_BITACORA_PACHECO.TXT', content: '<h1>EXPEDIENTE: FÁBRICA DE CEMENTO PACHECO</h1><h2>INVESTIGACIÓN DE CAMPO</h2>La fábrica lleva abandonada diez años. El aire es pesado, huele a cal y olvido. La leyenda local dice que un empleado, cegado por el rencor tras un despido injusto, regresó una mañana de invierno para masacrar a su jefe y a tres compañeros. Se suicidó poco después, pero los ruidos mecánicos persisten.\n\nHe recuperado pertenencias: zapatillas rotas, herramientas oxidadas que nadie se atreve a reclamar. Hay algo aquí que no es humano. Los gritos que escuché no eran grabaciones... o tal vez mi mente me engaña.' }, en: { title: '001_PACHECO_LOG.TXT', content: '<h1>FILE: PACHECO CEMENT FACTORY</h1><h2>FIELD RESEARCH</h2>Abandoned for ten years. Local legend says a staff massacre occurred. The screams I heard... they didn\'t sound like recordings.' } },
+            '001_PACHECO_IMG.jpg': { type: 'jpg', src: 'media/enigma-franca.webp', es: { title: '001_CAPTURA_MASCARA.JPG', desc: 'Prueba visual de la máscara de látex encontrada en el sector de administración. ¿Era un truco o parte del ritual?' }, en: { title: '001_MASK_CAPTURE.JPG', desc: 'Visual evidence of the latex mask. Was it a trick or a ritual?' } },
+            '001_PACHECO_VID.mp4': { type: 'mp4', src: '#', es: { title: '001_VIDEO_FABRICA.MP4', desc: '[ARCHIVO DAÑADO] - Primer intento de "Enigmas Argentinos". La gente se rió en los comentarios, pero yo sé lo que sentí detrás de esa columna.' }, en: { title: '001_FACTORY_VIDEO.MP4', desc: '[CORRUPTED FILE] - People laughed, but I know what I felt.' } },
+            '002_ESPOSAS_SCR.txt': { type: 'txt', es: { title: '002_NOTAS_LAS_ESPOSAS.TXT', content: '<h1>PROYECTO: LAS ESPOSAS</h1><h2>EL MITO CREADO</h2>Si la fábrica no fue suficiente, necesito algo que les pegue más fuerte. He inventado la leyenda de "Las Esposas": un centro clandestino de detención que nunca figuró en los registros oficiales. Un fantasma de la dictadura. Gonzalo dice que es peligroso jugar con esto, pero el terror es mi arma. \n\n"Vamos a ver si ahora se ríen de mí", le dije. Grabaremos en el edificio abandonado de la calle 4. El ambiente es perfecto, asfixiante.' }, en: { title: '002_HANDCUFFS_NOTES.TXT', content: '<h1>PROJECT: THE HANDCUFFS</h1><h2>THE CREATED MYTH</h2>I invented "The Handcuffs": a ghost clandestine center. Gonzalo says it\'s dangerous, but horror is my weapon.' } },
+            '002_ESPOSAS_IMG.jpg': { type: 'jpg', src: 'media/enigma-franca.webp', es: { title: '002_PHOTO_LOCALIZACION.JPG', desc: 'Entrada al edificio de la calle 4. Los grafitis parecen advertencias, no arte callejero.' }, en: { title: '002_LOCATION_PHOTO.JPG', desc: 'Entrance to the street 4 building. Warnings, not art.' } },
+            '002_ESPOSAS_VID.mp4': { type: 'mp4', src: '#', es: { title: '002_VIDEO_LAS_ESPOSAS.MP4', desc: '[REMOVIDO] - Video controversial sobre el centro fantasma. Los comentarios fueron agresivos. "No se jode con eso". No entienden que el horror es una forma de memoria.' }, en: { title: '002_HANDCUFFS_VIDEO.MP4', desc: '[REMOVED] - Controversial video. Aggressive comments.' } },
+            '003_LAGUNA_LOG.txt': { type: 'txt', es: { title: '003_DIARIO_FINAL.TXT', content: '<h1>AVANCE: LA LAGUNA DEL OLVIDO</h1><h2>ENTRADA FINAL - 12 DIC 2023</h2>Eusebio tenía razón. La laguna es un ojo de mar. Nadie vive aquí, ni siquiera el viento. He encontrado el altar tallado en piedra. Velas negras, restos de algo que no quiero nombrar. \n\nSola. Por fin sola. Al tocar la flauta en la orilla, algo respondió. Un chapoteo rítmico, casi una risa. Mañana entraré en el bote. Si alguien encuentra esto, que sepa que no tenía miedo. Tenía curiosidad.' }, en: { title: '003_FINAL_DIARY.TXT', content: '<h1>PROGRESS: LAGOON OF OBLIVION</h1><h2>FINAL ENTRY - DEC 12 2023</h2>The lagoon is a sea eye. I found the stone altar. Black candles. Something responded to the flute.' } },
+            '003_LAGUNA_IMG.jpg': { type: 'jpg', src: 'media/enigma-franca.webp', es: { title: '003_CAPTURA_TRITON.JPG', desc: 'Bajo el agua fluorescente, entre los huesos. Una mirada que no es de este mundo. No es un mito, es una presencia.' }, en: { title: '003_TRITON_CAPTURE.JPG', desc: 'Under the fluorescent water. A gaze not of this world.' } },
+            '003_LAGUNA_VID.mp4': { type: 'mp4', src: '#', es: { title: '003_VIDEO_SIGHTING.MP4', desc: '[ARCHIVO RECUPERADO] - El bote se estremece. Pierdo el remo. El Tritón se asoma. Sus espinas en la espalda brillan con la luz mala. El video se corta con mi caída.' }, en: { title: '003_SIGHTING_VIDEO.MP4', desc: '[RECOVERED FILE] - The Merman appears. The video ends as I fall.' } },
+            'MSG_001_FLOR.txt': { type: 'txt', private: true, es: { title: 'MSG_FLOR_REPROCHE.TXT', content: 'FLOR: Franca, no viniste a mi cumple. Todos preguntaron. Me cansé de poner excusas por vos. ¿Estás de nuevo encerrada con esos videos de mierda?' }, en: { title: 'MSG_FLOR_REPROACH.TXT', content: 'FLOR: You missed my birthday. Tired of making excuses for you.' } },
+            'MSG_002_GONZALO.txt': { type: 'txt', private: true, es: { title: 'MSG_GONZALO_ADVERTENCIA.TXT', content: 'GONZALO: Borrá el video de Las Esposas. La gente está sacada. Nos van a doxxear. Franca, esto no es divertido ya. Contestame.' }, en: { title: 'MSG_GONZALO_WARNING.TXT', content: 'GONZALO: Delete the video. People are angry. We\'re gonna get doxxed.' } },
+            'MSG_003_MOM.txt': { type: 'txt', private: true, es: { title: 'MSG_MAMÁ_CENA.TXT', content: 'MAMÁ: Hijita, la cena está lista. Tu papá está de mal humor, vení a comer un rato con nosotros y deja la cámara. Te queremos.' }, en: { title: 'MSG_MOM_DINNER.TXT', content: 'MOM: Dinner ready. Dad is in a bad mood, come eat with us.' } },
+            'MSG_004_FLOR_FINAL.txt': { type: 'txt', private: true, es: { title: 'MSG_FLOR_DESPEDIDA.TXT', content: 'FRANCA: Flor, ya estoy en la Laguna. No hay señal. Es hermoso y horrible al mismo tiempo. Siento que por fin pertenezco a algún lugar. Perdón por lo del cumple.' }, en: { title: 'MSG_FLOR_LAST.TXT', content: 'FRANCA: At the Lagoon. No signal. I finally feel I belong somewhere.' } },
+            'MSG_005_GONZALO_BREAKUP.txt': { type: 'txt', private: true, es: { title: 'MSG_GONZALO_RELACION.TXT', content: 'GONZALO: Franca, no puedo seguir así. Sos como un fantasma en vida. Buscás monstruos pero te estás convirtiendo en uno de ellos. Se terminó.' }, en: { title: 'MSG_GONZALO_OVER.TXT', content: 'GONZALO: You\'re like a living ghost. It\'s over.' } },
+            'DIARY_001_TRAPPED.txt': { type: 'txt', private: true, es: { title: 'DIARIO_01_ATRAPADA.TXT', content: '<h1>05 OCT 2023</h1>Me miran pero no me ven. Mi papá quiere una hija abanderada, mi mamá quiere una muñeca. Yo solo quiero capturar lo que está detrás de la cortina. Me siento atrapada en esta casa moderna.' }, en: { title: 'DIARY_01_TRAPPED.TXT', content: '<h1>OCT 05 2023</h1>They look at me but don\'t see me. I feel trapped.' } },
+            'DIARY_002_LEGEND.txt': { type: 'txt', private: true, es: { title: 'DIARIO_02_DESCUBRIMIENTO.TXT', content: '<h1>15 NOV 2023</h1>Encontré a Eusebio en un foro viejo. Me habló de Brealito y la Laguna del Olvido. "Un ojo de mar", dijo. Algo los reclamó en 1950. Tengo que ser yo quien lo filme.' }, en: { title: 'DIARY_02_LEGEND.TXT', content: '<h1>NOV 15 2023</h1>Found Eusebio. He told me about the Lagoon. Something claimed them in 1950.' } },
+            'DIARY_003_HOTEL.txt': { type: 'txt', private: true, es: { title: 'DIARIO_03_MARIA.TXT', content: '<h1>09 DIC 2023</h1>Llegué a La Quintana. María, la recepcionista, me miró como si fuera una condenada. Dice que el agua está podrida. No entiende nada. El agua está habitada.' }, en: { title: 'DIARY_03_HOTEL.TXT', content: '<h1>DEC 09 2023</h1>Arrived at La Quintana. Maria looked at me like I was doomed.' } },
+            'DIARY_004_ALTAR.txt': { type: 'txt', private: true, es: { title: 'DIARIO_04_EL_ALTAR.TXT', content: '<h1>11 DIC 2023</h1>Encontré el altar. Velas negras nuevas. Alguien estuvo aquí hace poco. Toqué la flauta y el eco fue... diferente. Fue una RESPUESTA. Dios mío.' }, en: { title: 'DIARY_04_ALTAR.TXT', content: '<h1>DEC 11 2023</h1>Found the altar. Someone was here. The flute worked.' } },
+            'DIARY_005_EYES.txt': { type: 'txt', private: true, es: { title: 'DIARIO_05_VOZ.TXT', content: '<h1>12 DIC 2023 - MADRUGADA</h1>Lo vi. Sus ojos son como espejos de obsidiana. Me llama desde el centro de la laguna. No es un monstruo, es un rey. Voy a entrar al agua con él. No moriré en el olvido.' }, en: { title: 'DIARY_05_VOICE.TXT', content: '<h1>DEC 12 2023</h1>I saw him. obsidian mirrors. He calls me. I\'m going in.' } },
+            'CH_01_LLAMADO': { type: 'txt', es: { title: 'CAP_01_EL_LLAMADO.TXT', content: '<h1>CAPÍTULO 1: EL LLAMADO</h1>Primeras sospechas. Pacheco no es solo una fábrica, es un portal. Alguien me está guiando desde las sombras. Las llamadas nocturnas no son bromas pesadas, son advertencias.' }, en: { title: 'CH_01_THE_CALL.TXT', content: 'First suspicions. Pacheco is a portal.' } },
+            'CH_02_FABRICA': { type: 'txt', es: { title: 'CAP_02_LA_FABRICA.TXT', content: '<h1>CAPÍTULO 2: LA FÁBRICA</h1>El ruido de las máquinas sigue sonando aunque todo esté apagado. Encontré el primer símbolo grabado en el metal de la caldera central. No es óxido, es escritura.' }, en: { title: 'CH_02_THE_FACTORY.TXT', content: 'The machine noise continues.' } },
+            'CH_03_SECRETO': { type: 'txt', es: { title: 'CAP_03_EL_SECRETO.TXT', content: '<h1>CAPÍTULO 3: EL SECRETO</h1>Los dueños no se fueron, los "llevaron". Encontré sus actas de defunción... fechadas un año antes de que cerraran la fábrica. ¿Quién operaba las máquinas entonces?' }, en: { title: 'CH_03_THE_SECRET.TXT', content: 'The owners were "taken".' } },
+            'CH_04_ESPOSAS': { type: 'txt', es: { title: 'CAP_04_LAS_ESPOSAS.TXT', content: '<h1>CAPÍTULO 4: LAS ESPOSAS</h1>Rituales bajo la luna llena. No son fantasmas, son ecos de algo más antiguo que la propia Argentina. El llanto en el bosque no es de mujer, es del viento entre los huesos.' }, en: { title: 'CH_04_THE_WIVES.TXT', content: 'Moonlight rituals.' } },
+            'CH_05_LAGUNA': { type: 'txt', es: { title: 'CAP_05_LA_LAGUNA.TXT', content: '<h1>CAPÍTULO 5: LA LAGUNA</h1>La Laguna del Olvido me está llamando. El agua es negra como el petróleo y fría como la muerte. He visto algo emerger... algo que no tiene rostro pero tiene mil ojos.' }, en: { title: 'CH_05_THE_LAGOON.TXT', content: 'The water is black.' } },
+            'CH_06_REINO': { type: 'txt', es: { title: 'CAP_06_EL_REINO.TXT', content: '<h1>CAPÍTULO 6: EL REINO</h1>He cruzado. No hay vuelta atrás. El Reino de la Obsidiana es real y Franca Farmin ya no existe. Solo queda la Verdad. Si encuentras esto, ya es tarde.' }, en: { title: 'CH_06_THE_KINGDOM.TXT', content: 'The Kingdom of Obsidian is real.' } },
+            'MSG_MOM_02': { type: 'txt', es: { title: 'MSG_MAMÁ_URGENTE.TXT', content: 'Franca, por favor contestame. Fui a tu departamento y no había nadie. La policía dice que no puede hacer nada todavía. Llamame apenas veas esto.' } },
+            'MSG_EX_01': { type: 'txt', es: { title: 'MSG_GONZALO_FINAL.TXT', content: 'No puedo seguir con esto, Franca. Tu obsesión con esos casos te está consumiendo. Me das miedo a veces. No me busques más.' } },
+            'MSG_UNKNOWN_X': { type: 'txt', es: { title: 'MSG_DESCONOCIDO.TXT', content: 'ESTÁS CERCA. NO MIRES ATRÁS. ELLOS TE VEN DESDE EL REFLEJO DE LA PANTALLA. NO APAGUES LA LUZ.' } },
+            'PIC_001': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (1).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (1).jpeg', desc: 'Fragmento 01: El pasillo central.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (1).jpeg', desc: 'Fragment 01.' } },
+            'PIC_002': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (2).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (2).jpeg', desc: 'Fragmento 02: La oficina abandonada.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (2).jpeg', desc: 'Fragment 02.' } },
+            'PIC_003': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (3).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (3).jpeg', desc: 'Fragmento 03: Fotografía antigua.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (3).jpeg', desc: 'Fragment 03.' } },
+            'PIC_004': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (4).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (4).jpeg', desc: 'Fragmento 04: Detalle de maquinaria.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (4).jpeg', desc: 'Fragment 04.' } },
+            'PIC_005': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (5).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (5).jpeg', desc: 'Fragmento 05: La entrada.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (5).jpeg', desc: 'Fragment 05.' } },
+            'PIC_006': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (6).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (6).jpeg', desc: 'Fragmento 06: El objeto.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (6).jpeg', desc: 'Fragment 06.' } },
+            'PIC_007': { type: 'jpg', src: 'media/Mis Imágenes/RECOVERY_MAGIC_PIC 000 (7).jpeg', es: { title: 'RECOVERY_MAGIC_PIC 000 (7).jpeg', desc: 'Fragmento 07: La ventana.' }, en: { title: 'RECOVERY_MAGIC_PIC 000 (7).jpeg', desc: 'Fragment 07.' } },
+            'VID_PACHECO_WP': { type: 'mp4', src: 'media/Mis Videos/wp_video_f-brica_PCH.mp4', es: { title: 'wp_video_f-brica_PCH.mp4', desc: 'Surveillance clip from Pacheco Factory.' }, en: { title: 'wp_video_f-brica_PCH.mp4', desc: 'Surveillance clip from Pacheco Factory.' } },
+            'VID_CORRUPTED': { type: 'mp4', src: '', es: { title: 'VID_ERROR_99.MP4', desc: '[DANGER] Archivo severamente dañado por exposición a radiación de obsidiana. No se puede previsualizar.' } },
+            'TRASH_CODE.txt': { type: 'txt', es: { title: 'FRAGMENTO_RECUPERADO.TXT', content: '<h1>N1 MR 4F</h1><p style="color:#555; font-size:0.8rem; margin-top:20px;">[NOTA_DEL_SISTEMA: Este fragmento parece ser parte de una clave de acceso de alto nivel. Conservar para futuras validaciones.]</p>' }, en: { title: 'RECOVERED_FRAGMENT.TXT', content: '<h1>N1 MR 4F</h1><p style="color:#555; font-size:0.8rem; margin-top:20px;">[SYSTEM_NOTE: This fragment appears to be part of a high-level access key. Keep for future validation.]</p>' } },
+            'ENIGMA_01': { type: 'mp4', src: 'media/⛧E̷N̶I̶G̶M̶A̶S̶ ̶A̶R̶G̶E̶N̶T̶I̶N̶O̶S̶⛧/enigmas_arg_001.mp4', es: { title: 'ENIGMAS_ARG_001.MP4', desc: 'Evidencia recuperada de la carpeta especial.' }, en: { title: 'ENIGMAS_ARG_001.MP4', desc: 'Recovered evidence from the special folder.' } },
+            'ENIGMA_02': { type: 'mp4', src: 'media/⛧E̷N̶I̶G̶M̶A̶S̶ ̶A̶R̶G̶E̶N̶T̶I̶N̶O̶S̶⛧/enigmas_arg_002.mp4', es: { title: 'ENIGMAS_ARG_002.MP4', desc: 'Evidencia recuperada de la carpeta especial.' }, en: { title: 'ENIGMAS_ARG_002.MP4', desc: 'Recovered evidence from the special folder.' } }
+        };
+
+        const MemorySystem = {
+            sequence: [], input: [], mode: 'captcha',
+            init(fileOrFolder, mode = 'captcha') {
+                pendingFile = fileOrFolder; this.mode = mode;
+                this.sequence = []; this.input = [];
+                for(let i=0; i<4; i++) this.sequence.push(Math.floor(Math.random()*8));
+                
+                captchaOverlay.style.display = 'flex';
+                document.getElementById('captcha-msg').textContent = mode === 'captcha' ? '[HUMANITY_VERIFICATION]' : '[FILE_DECRYPTION_PROTOCOL]';
+                this.show();
+            },
+            async show() {
+                const pads = document.querySelectorAll('.simon-pad');
+                document.getElementById('captcha-hint').textContent = "WATCH THE SEQUENCE";
+                for(let i of this.sequence) {
+                    await new Promise(r => setTimeout(r, 600));
+                    pads[i].classList.add('active');
+                    await new Promise(r => setTimeout(r, 400));
+                    pads[i].classList.remove('active');
+                }
+                document.getElementById('captcha-hint').textContent = "REPEAT THE SEQUENCE";
+            },
+            click(i) {
+                const pads = document.querySelectorAll('.simon-pad');
+                pads[i].classList.add('active');
+                setTimeout(() => pads[i].classList.remove('active'), 200);
+                this.input.push(i);
+                if (this.input[this.input.length-1] !== this.sequence[this.input.length-1]) {
+                    this.init(pendingFile, this.mode);
+                } else if (this.input.length === this.sequence.length) {
+                    setTimeout(() => {
+                        captchaOverlay.style.display = 'none';
+                        if (this.mode === 'captcha') { 
+                            humanVerified = true; 
+                            if (pendingFile && pendingFile.type === 'folder') {
+                                unlockedFolders.add(pendingFile.name);
+                                openFolder(pendingFile.name, pendingFile.content);
+                            } else {
+                                openWindow(pendingFile); 
+                            }
+                        }
+                        else { renderFinal(pendingFile); }
+                    }, 500);
+                }
+            }
+        };
+
+        function setLang(lang) {
+            currentLang = lang; renderHeader(); output.innerHTML = "";
+            const titles = {
+                es: "ENIGMAS ARGENTINOS | SERVIDOR ESPEJO",
+                en: "ARGENTINE ENIGMAS | MIRROR SERVER",
+                fr: "ÉNIGMES ARGENTINES | SERVEUR MIROIR",
+                jp: "ARGENTINE ENIGMAS | ミラーサーバー"
+            };
+            document.title = titles[lang] || titles.es;
+            print(LOCALES[lang].boot_sistema); print(LOCALES[lang].boot_log); print(LOCALES[lang].boot_idx, 'glitch-text');
+            const old = document.getElementById('persistent-ls'); if(old) old.remove();
+        }
+
+        function renderHeader() {
+            const loc = LOCALES[currentLang];
+            dynamicHeader.innerHTML = `
+                <div class="header-branding">
+                    <div style="width: 100%;">
+                        <div class="line ascii-art">${loc.title}</div>
+                        <div class="lang-selector">
+                            <span class="lang-btn ${currentLang==='es'?'active':''}" onclick="setLang('es')">[ES]</span>
+                            <span class="lang-btn ${currentLang==='en'?'active':''}" onclick="setLang('en')">[EN]</span>
+                            <span class="lang-btn ${currentLang==='fr'?'active':''}" onclick="setLang('fr')">[FR]</span>
+                            <span class="lang-btn ${currentLang==='jp'?'active':''}" onclick="setLang('jp')">[JP]</span>
+                        </div>
+                        <div class="disclaimer-box">
+                            ${loc.disclaimer}
+                        </div>
+                    </div>
+                </div>`;
+            outputHeader.innerHTML = `<div class="line system-msg">${loc.system_recovered}</div>
+                <div class="line">${loc.ip_relay}</div><div class="line">${loc.status}</div><div class="nav-hint">${loc.hint}</div>`;
+            termPrompt.textContent = loc.prompt;
+        }
+
+        const COMMANDS = {
+            'ls': () => {
+                const loc = LOCALES[currentLang];
+                const old = document.getElementById('persistent-ls');
+                if (old) old.remove();
+
+                const container = document.createElement('div');
+                container.id = 'persistent-ls';
+                output.appendChild(container);
+
+                const hdr = document.createElement('div');
+                hdr.className = 'line category-header';
+                hdr.textContent = "--- [ROOT_DIRECTORY] ---";
+                container.appendChild(hdr);
+                
+                const structure = {
+                    public: { text: [], image: [], video: [] },
+                    private: { text: [], image: [], video: [] }
+                };
+
+                Object.keys(DATABASE).forEach(k => {
+                    const f = DATABASE[k];
+                    const cat = f.private ? 'private' : 'public';
+                    let type = 'text';
+                    if (f.type === 'jpg') type = 'image';
+                    if (f.type === 'mp4') type = 'video';
+                    structure[cat][type].push({ key: k, info: f });
+                });
+
+                const renderBranch = (name, data, isPrivate) => {
+                    const b = document.createElement('div');
+                    b.className = 'line';
+                    const localizedCat = isPrivate ? loc.cat_private : loc.cat_public;
+                    b.innerHTML = `<span style="color:var(--term-bright)">/${localizedCat}</span>`;
+                    container.appendChild(b);
+
+                    const types = ['text', 'image', 'video'];
+                    types.forEach((type) => {
+                        if (data[type].length === 0) return;
+                        const tb = document.createElement('div');
+                        tb.className = 'line';
+                        tb.style.paddingLeft = '20px';
+                        const localizedType = loc[`type_${type}`];
+                        tb.innerHTML = `<span style="color:var(--term-orange)">└─ ${localizedType}</span>`;
+                        container.appendChild(tb);
+
+                        data[type].forEach(file => {
+                            const fLine = document.createElement('div');
+                            fLine.style.paddingLeft = '45px';
+                            fLine.style.display = 'block';
+                            if (isPrivate && !isUnlocked) {
+                                fLine.className = 'censored-file';
+                                fLine.innerHTML = `├─ ████_█████.bak <span>[LOCKED]</span>`;
+                                fLine.onclick = () => { isWaitingForKey = true; termPrompt.textContent = LOCALES[currentLang].auth_prompt; input.focus(); };
+                            } else {
+                                fLine.className = 'clickable-file';
+                                fLine.textContent = `├─ ${file.info[currentLang] ? file.info[currentLang].title : file.info['es'].title}`;
+                                fLine.onclick = () => openWindow(file.info);
+                            }
+                            container.appendChild(fLine);
+                        });
+                    });
+                };
+
+                renderBranch("public", structure.public, false);
+                renderBranch("private", structure.private, true);
+                terminal.scrollTop = terminal.scrollHeight;
+                return "";
+            },
+            'unlock': (a) => { if(a && a.toLowerCase()==='flor') { isUnlocked=true; COMMANDS.ls(); return "UNLOCKED."; } return "FAIL."; },
+            'help': () => "Commands: status, enter_remote, login [PASSWORD], ls, clear, help",
+            'clear': () => { output.innerHTML = ''; return ""; },
+            'exit': () => { location.reload(); return ""; }
+        };
+
+        function openWindow(file) {
+            const d = file[currentLang] || file['es'];
+            windowTitle.textContent = d.title;
+            if (file.type === 'jpg' && !humanVerified) { MemorySystem.init(file, 'jpg'); } 
+            else { renderFinal(file); }
+        }
+
+        function renderFinal(file) {
+            windowOverlay.style.display = 'flex';
+            const d = file[currentLang] || file['es'];
+            if (file.type === 'txt') {
+                windowContent.innerHTML = `<div class="format-txt">${d.content}</div>`;
+            } else if (file.type === 'pdf') {
+                windowContent.innerHTML = `<div class="format-pdf"><h1>${d.title}</h1>${d.content}</div>`;
+            } else if (file.type === 'mp4') {
+                windowContent.innerHTML = `
+                    <div style="text-align:center">
+                        <video controls autoplay style="max-width:100%; border:1px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+                            <source src="${file.src}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <p style="margin-top:15px; color:#888; font-style:italic">${d.desc}</p>
+                    </div>`;
+            } else {
+                windowContent.innerHTML = `
+                    <div style="text-align:center">
+                        <img src="${file.src}" style="max-width:100%; border:1px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+                        <p style="margin-top:15px; color:#888; font-style:italic">${d.desc}</p>
+                    </div>`;
+            }
+        }
+
+        function closeWindow() { windowOverlay.style.display = 'none'; }
+        function print(t, c='') { const l=document.createElement('div'); l.className='line '+c; l.textContent=t; output.appendChild(l); terminal.scrollTop=terminal.scrollHeight; }
+
+        const desktopContainer = document.getElementById('desktop-container');
+        const desktopIcons = document.getElementById('desktop-icons');
+        const bootSequence = document.getElementById('boot-sequence');
+        const taskbarClock = document.getElementById('taskbar-clock');
+
+        function updateClock() {
+            const now = new Date();
+            taskbarClock.textContent = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        async function initiateRemoteAccess() {
+            isUnlocked = true;
+            output.innerHTML = "";
+            print("ESTABLECIENDO CONEXIÓN REMOTA...", "system-msg");
+            await new Promise(r => setTimeout(r, 800));
+            print("BYPASSING GATEWAY 'F.F. RECOVERY'...", "glitch-text");
+            await new Promise(r => setTimeout(r, 1200));
+            print("REMOTE SESSION ESTABLISHED: FRANCA_PC", "system-msg");
+            await new Promise(r => setTimeout(r, 1000));
+            
+            bootSequence.style.display = 'flex';
+            bootSequence.style.opacity = '1';
+            const lines = [
+                "FRANCA_OS v1.0.4 (DEEP_NET_DISTRO)",
+                "DECRYPTING SESSION...",
+                "LOADING PERSONAL_PREFERENCES...",
+                "WARNING: SYSTEM INTEGRITY COMPROMISED",
+                "ROOT_ACCESS: ENABLED",
+                "STARTING XSERVER..."
+            ];
+            for (let line of lines) {
+                const l = document.createElement('div');
+                l.textContent = "> " + line;
+                bootSequence.appendChild(l);
+                await new Promise(r => setTimeout(r, 300));
+            }
+            
+            await new Promise(r => setTimeout(r, 1000));
+            
+            document.body.classList.add('desktop-active');
+            desktopContainer.style.display = 'flex';
+            document.getElementById('main-container').style.display = 'none';
+            renderDesktopIcons();
+            
+            bootSequence.style.opacity = '0';
+            setTimeout(() => { 
+                bootSequence.style.display = 'none'; 
+                showCountdownPopup();
+            }, 800);
+        }
+
+        function showCountdownPopup() {
+            const body = createWin('SYS_WARNING // OVERRIDE', 'exe');
+            const win = body.closest('.desktop-window');
+            win.style.width = '650px';
+            win.style.height = '450px';
+            win.querySelector('.window-title-bar').style.background = 'rgba(255, 204, 0, 0.1)';
+            win.querySelector('.window-title-bar').style.color = '#ffcc00';
+            win.querySelector('.window-title-bar').style.borderBottom = '1px solid rgba(255, 204, 0, 0.3)';
+            win.style.border = '1px solid rgba(255, 204, 0, 0.4)';
+            win.style.boxShadow = '0 0 50px rgba(255, 204, 0, 0.15)';
+            
+            body.style.padding = '0';
+            body.style.overflow = 'hidden';
+            body.innerHTML = `
+                <div class="scanlines" style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#050500; color:#ffcc00; text-align:center;">
+                    <div id="dynamic-countdown" style="font-size: 3.8rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; text-shadow: 0 0 25px rgba(255,204,0,0.8); margin: 0 0 20px 0; line-height:1; letter-spacing: 2px;" class="glitch-text">--d:--h:--m:--s</div>
+                    <p style="font-size: 1.2rem; text-transform: uppercase; letter-spacing: 6px; margin: 0 0 35px 0; opacity:0.9; font-weight:bold;">PARA LA REVELACIÓN</p>
+                    <button class="game-btn" style="border-color:#ffcc00; color:#ffcc00; padding: 10px 25px; font-size:0.9rem; box-shadow:0 0 15px rgba(255,204,0,0.2);" onclick="clearInterval(window.countdownInterval); this.closest('.desktop-window').remove()" onmouseover="this.style.background='#ffcc00'; this.style.color='#000'; this.style.boxShadow='0 0 25px #ffcc00';" onmouseout="this.style.background='transparent'; this.style.color='#ffcc00'; this.style.boxShadow='0 0 15px rgba(255,204,0,0.2)';">CERRAR ADVERTENCIA</button>
+                </div>
+            `;
+
+            const targetDate = new Date("2026-06-30T00:00:00").getTime();
+            const el = document.getElementById('dynamic-countdown');
+            
+            function updateCounter() {
+                const now = new Date().getTime();
+                const diff = targetDate - now;
+                if (diff <= 0) { el.textContent = "00d:00h:00m:00s"; return; }
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0');
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+                const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+                el.textContent = `${d}d:${h}h:${m}m:${s}s`;
+            }
+            updateCounter();
+            window.countdownInterval = setInterval(updateCounter, 1000);
+        }
+
+        const FILESYSTEM = {
+            'Escritorio': {
+                'Papelera de reciclaje': ['TRASH_CODE.txt'],
+                'Investigacion': {
+                    'Guiones_Originales': ['CH_01_LLAMADO', 'CH_02_FABRICA', 'CH_03_SECRETO', 'CH_04_ESPOSAS', 'CH_05_LAGUNA', 'CH_06_REINO'],
+                    'Documentos_Policia': ['001_PACHECO_SCR.txt', '002_ESPOSAS_SCR.txt', '003_LAGUNA_LOG.txt'],
+                    'Fotografias_Evidencia': ['001_PACHECO_IMG.jpg', '002_ESPOSAS_IMG.jpg', '003_LAGUNA_IMG.jpg']
+                },
+                'Personal': {
+                    'ChatLogs_Recuperados': ['MSG_001_FLOR.txt', 'MSG_002_GONZALO.txt', 'MSG_003_MOM.txt', 'MSG_MOM_02', 'MSG_EX_01', 'MSG_004_FLOR_FINAL.txt', 'MSG_005_GONZALO_BREAKUP.txt', 'MSG_UNKNOWN_X'],
+                    'Diario': ['DIARY_001_TRAPPED.txt', 'DIARY_002_LEGEND.txt', 'DIARY_003_HOTEL.txt', 'DIARY_004_ALTAR.txt', 'DIARY_005_EYES.txt']
+                },
+                'Mis Videos': ['001_PACHECO_VID.mp4', '002_ESPOSAS_VID.mp4', '003_LAGUNA_VID.mp4', 'VID_PACHECO_WP', 'VID_CORRUPTED'],
+                'Mis Imágenes': ['PIC_001', 'PIC_002', 'PIC_003', 'PIC_004', 'PIC_005', 'PIC_006', 'PIC_007'],
+                'EAT-MANN.EXE': 'GAME_APP',
+                'OJO_AMBAR.EXE': 'OJO_APP',
+                'SKYFALL.EXE': 'SKY_APP',
+                '⛧E̷N̶I̶G̶M̶A̶S̶ ̶A̶R̶G̶E̶N̶T̶I̶N̶O̶S̶⛧': ['ENIGMA_01', 'ENIGMA_02']
+            }
+        };
+
+        function renderDesktopIcons() {
+            desktopIcons.innerHTML = "";
+            const desktopItems = FILESYSTEM['Escritorio'];
+            Object.keys(desktopItems).forEach(key => {
+                const item = desktopItems[key];
+                const isFolder = typeof item === 'object' && item !== null;
+                
+                const icon = document.createElement('div');
+                icon.className = 'icon';
+                const fileObj = (typeof item === 'string') ? DATABASE[item] : null;
+                const type = isFolder ? 'folder' : (fileObj ? fileObj.type : (key.endsWith('.EXE') ? 'exe' : 'txt'));
+                let iconClass = isFolder ? 'folder' : (type === 'mp4' ? 'vid' : (type === 'jpg' ? 'img-file' : (type === 'exe' ? 'exe' : 'txt')));
+                
+                // Specific Icons
+                if (key === 'Mis Imágenes') iconClass = 'folder-img';
+                else if (key === 'Mis Videos') iconClass = 'folder-vid';
+                else if (key === 'Papelera de reciclaje') iconClass = 'trash';
+                
+                icon.innerHTML = `<div class="icon-img icon-${iconClass}"></div><div class="icon-label">${key}</div>`;
+                icon.ondblclick = () => {
+                    if (key === 'EAT-MANN.EXE') { openEat(); return; }
+                    if (key === 'OJO_AMBAR.EXE') { openOjo(); return; }
+                    if (key === 'SKYFALL.EXE') { openSky(); return; }
+                    if (isFolder) {
+                        const protectedFolders = ['Mis Imágenes', 'Mis Videos', 'Personal'];
+                        if (protectedFolders.includes(key) && !unlockedFolders.has(key)) { 
+                            MemorySystem.init({type: 'folder', name: key, content: item}, 'captcha'); 
+                            return; 
+                        }
+                        openFolder(key, item);
+                    }
+                    else if (DATABASE[item]) openWindow(DATABASE[item]);
+                    else if (DATABASE[key]) openWindow(DATABASE[key]);
+                };
+                desktopIcons.appendChild(icon);
+            });
+        }
+
+        function createWin(title, type) {
+            const win = document.createElement('div');
+            win.className = 'desktop-window';
+            win.style.display = 'flex';
+            win.innerHTML = `
+                <div class="window-title-bar"><span>${title}</span>
+                <div class="window-controls"><div class="win-btn" onclick="this.closest('.desktop-window').remove()">X</div></div></div>
+                <div class="window-body"></div>`;
+            desktopContainer.appendChild(win);
+            return win.querySelector('.window-body');
+        }
+
+        function openFolder(name, content) {
+            const body = createWin(name, 'folder');
+            body.innerHTML = `<div class="details-header"><div>Name</div><div>Type</div><div>Status</div></div><div class="folder-grid"></div>`;
+            const grid = body.querySelector('.folder-grid');
+            Object.keys(content).forEach(key => {
+                const subItem = content[key];
+                const isSubFolder = !Array.isArray(subItem) && typeof subItem === 'object';
+                const fileId = Array.isArray(subItem) ? subItem[0] : (typeof subItem === 'string' ? subItem : null);
+                const fileObj = fileId ? DATABASE[fileId] : null;
+                const type = isSubFolder ? 'folder' : (fileObj ? fileObj.type : 'txt');
+                const row = document.createElement('div');
+                row.className = 'details-row';
+                row.innerHTML = `<div class="details-name"><div class="icon-img icon-${isSubFolder ? 'folder' : (type === 'mp4' ? 'vid' : (type === 'jpg' ? 'img-file' : 'txt'))}"></div>${isSubFolder ? key : (fileObj ? fileObj[currentLang].title : key)}</div><div class="details-type">${isSubFolder ? 'Folder' : type.toUpperCase() + ' File'}</div><div class="details-size">${fileObj && fileObj.private ? 'Encrypted' : 'Public'}</div>`;
+                row.ondblclick = (e) => { e.stopPropagation(); if (isSubFolder) openFolder(key, subItem); else if (fileObj) openWindow(fileObj); };
+                grid.appendChild(row);
+            });
+        }
+
+        /* --- GAME ENGINE (EAT-MANN) --- */
+        function openEat() {
+            const body = createWin('EAT-MANN // 973-EHT-NAMUH', 'exe');
+            body.innerHTML = `
+                <div id="eat-mann-container" class="game-window-body scanlines">
+                    <div class="game-ui-base" style="left:40px;">OBSESIONES: <span id="eat-score">0</span></div>
+                    <div class="game-ui-base" style="right:40px;">ETAPA: <span id="eat-lvl">1</span></div>
+                    <canvas id="eat-canvas" class="game-canvas-base"></canvas>
+                    <div id="eat-overlay" class="game-overlay-base" style="background:rgba(0,0,0,0.95);">
+                        <h1 class="glitch" style="font-size: 3.5rem; margin: 0; text-shadow: 0 0 20px #f00;">EAT-MANN</h1>
+                        <p style="letter-spacing: 10px;">973 . EHT . NAMUH . 973</p>
+                        <p style="font-size: 0.7rem; opacity: 0.7; margin-top: 20px;">EL CONSUMO ES OBLIGATORIO PARA LA TRASCENDENCIA</p>
+                        <button class="game-btn" onclick="window.startEat()">INICIAR CONSUMO</button>
+                    </div>
+                </div>
+            `;
+            initEatEngine();
+        }
+
+        function initEatEngine() {
+            const canvas = document.getElementById('eat-canvas');
+            const ctx = canvas.getContext('2d');
+            const tileSize = 30;
+            const rows = 15;
+            const cols = 20;
+            canvas.width = cols * tileSize;
+            canvas.height = rows * tileSize;
+            let score = 0, level = 1, frame = 0;
+            let player = { x: 1, y: 1, dir: { x: 0, y: 0 }, nextDir: { x: 0, y: 0 } };
+            let enemies = [], dots = [], maze = [];
+            let gameLoop = null;
+
+            function generateMaze() {
+                maze = Array.from({length: rows}, () => Array(cols).fill(1));
+                for(let r=1; r<4; r++) for(let c=1; c<4; c++) maze[r][c] = 0;
+                let x = 1, y = 1;
+                for(let i=0; i<600; i++) {
+                    const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                    const d = dirs[Math.floor(Math.random()*4)];
+                    const nx = x + d.x, ny = y + d.y;
+                    if (nx > 0 && nx < cols-1 && ny > 0 && ny < rows-1) { maze[ny][nx] = 0; x = nx; y = ny; }
+                }
+                dots = [];
+                for(let r=1; r<rows-1; r++) {
+                    for(let c=1; c<cols-1; c++) {
+                        if (maze[r][c] === 0) dots.push({x: c, y: r, collected: false});
+                    }
+                }
+                enemies = [];
+                for(let i=0; i<level+1; i++) {
+                    let ex = cols-2, ey = rows-2;
+                    while(maze[ey][ex] === 1) { ex--; if(ex<4){ex=cols-2; ey--;} }
+                    enemies.push({x: ex, y: ey, dir: {x: -1, y: 0}});
+                }
+            }
+
+            window.startEat = () => {
+                const overlay = document.getElementById('eat-overlay');
+                if(overlay) overlay.style.display = 'none';
+                score = 0; level = 1;
+                player = { x: 1, y: 1, dir: { x: 0, y: 0 }, nextDir: { x: 0, y: 0 } };
+                document.getElementById('eat-score').textContent = score;
+                document.getElementById('eat-lvl').textContent = level;
+                generateMaze();
+                if (gameLoop) clearInterval(gameLoop);
+                gameLoop = setInterval(update, 130);
+            };
+
+            function update() {
+                const nextX = player.x + player.nextDir.x;
+                const nextY = player.y + player.nextDir.y;
+                if (maze[nextY] && maze[nextY][nextX] === 0) player.dir = player.nextDir;
+                if (maze[player.y + player.dir.y] && maze[player.y + player.dir.y][player.x + player.dir.x] === 0) {
+                    player.x += player.dir.x; player.y += player.dir.y;
+                }
+                dots.forEach(d => {
+                    if (d.x === player.x && d.y === player.y && !d.collected) {
+                        d.collected = true; score += 10; document.getElementById('eat-score').textContent = score;
+                    }
+                });
+                if (dots.every(d => d.collected)) {
+                    level++;
+                    if (level > 3) endGame('HAS TRASCENDIDO EL CONSUMO FINAL.');
+                    else {
+                        document.getElementById('eat-lvl').textContent = level;
+                        player.x = 1; player.y = 1; player.dir = {x:0,y:0}; player.nextDir = {x:0,y:0};
+                        generateMaze();
+                    }
+                }
+                enemies.forEach(e => {
+                    if (Math.random() > 0.7) {
+                        const d = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}][Math.floor(Math.random()*4)];
+                        if (maze[e.y + d.y] && maze[e.y + d.y][e.x + d.x] === 0) e.dir = d;
+                    }
+                    if (maze[e.y + e.dir.y] && maze[e.y + e.dir.y][e.x + e.dir.x] === 0) { e.x += e.dir.x; e.y += e.dir.y; }
+                    if (e.x === player.x && e.y === player.y) endGame('EL OLVIDO TE HA CONSUMIDO.');
+                });
+                draw();
+            }
+
+            function draw() {
+                ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff0000'; ctx.font = '20px JetBrains Mono'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const wallChar = level === 1 ? '9' : (level === 2 ? '7' : '3');
+                for(let r=0; r<rows; r++) for(let c=0; c<cols; c++) if (maze[r][c] === 1) ctx.fillText(wallChar, c*tileSize + tileSize/2, r*tileSize + tileSize/2);
+                ctx.fillStyle = '#ff0000'; dots.forEach(d => { if (!d.collected) { ctx.beginPath(); ctx.arc(d.x*tileSize + tileSize/2, d.y*tileSize + tileSize/2, 2, 0, Math.PI*2); ctx.fill(); } });
+                ctx.fillStyle = '#ff6600'; ctx.shadowBlur = 10; ctx.shadowColor = '#ff6600';
+                const px = player.x*tileSize + tileSize/2, py = player.y*tileSize + tileSize/2;
+                ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(px-8, py-5); ctx.lineTo(px-15, py-18); ctx.lineTo(px-2, py-8); ctx.moveTo(px+8, py-5); ctx.lineTo(px+15, py-18); ctx.lineTo(px+2, py-8); ctx.fill();
+                ctx.shadowBlur = 0; ctx.fillStyle = '#00ffff';
+                enemies.forEach(e => {
+                    const ex = e.x*tileSize + tileSize/2, ey = e.y*tileSize + tileSize/2;
+                    ctx.beginPath(); ctx.moveTo(ex-12, ey+12); ctx.lineTo(ex, ey-12); ctx.lineTo(ex+12, ey+12); ctx.fill();
+                    ctx.shadowBlur = 15; ctx.shadowColor = '#00ffff'; ctx.stroke(); ctx.shadowBlur = 0;
+                });
+            }
+
+            function endGame(msg) {
+                clearInterval(gameLoop); gameLoop = null;
+                const overlay = document.getElementById('eat-overlay');
+                overlay.innerHTML = `<h1 style="color:#ff0000; text-shadow: 0 0 20px #f00;">${msg}</h1><button class="game-btn" onclick="startEat()">REINTENTAR</button>`;
+                overlay.style.display = 'flex';
+            }
+
+            const handler = (e) => {
+                if (!document.body.contains(canvas)) {
+                    window.removeEventListener('keydown', handler);
+                    return;
+                }
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                    if (e.key === 'ArrowUp') player.nextDir = {x: 0, y: -1};
+                    if (e.key === 'ArrowDown') player.nextDir = {x: 0, y: 1};
+                    if (e.key === 'ArrowLeft') player.nextDir = {x: -1, y: 0};
+                    if (e.key === 'ArrowRight') player.nextDir = {x: 1, y: 0};
+                }
+            };
+            window.addEventListener('keydown', handler);
+        }
+        /* --- OJO DE AMBAR ENGINE (EXACT PORT) --- */
+        function openOjo() {
+            const body = createWin('EL OJO DE ÁMBAR // 973', 'exe');
+            body.innerHTML = `
+                <div id="ojo-container" class="game-window-body scanlines">
+                    <div class="game-ui-base" style="left:40px;">RESIDUOS: <span id="ojo-score">0</span> / 50</div>
+                    <div class="game-ui-base" style="right:40px;">AMARRE: <span id="ojo-lvl">1</span> | <span id="ojo-sanity">100</span>%</div>
+                    <canvas id="ojo-canvas" class="game-canvas-base" width="600" height="600" style="background:#ffb000; border-color:#000; cursor:none;"></canvas>
+                    <div id="ojo-overlay" class="game-overlay-base" style="background:#ffb000; color:#000; border-color:#000;">
+                        <h1 style="font-size: 2.5rem; border-bottom: 4px solid #000; margin:0;">EL OJO DE ÁMBAR</h1>
+                        <p style="margin-top:20px; font-weight:bold;">RECOLECTA 50 RESIDUOS PARA EL SIGUIENTE AMARRE.</p>
+                        <button class="game-btn" style="border-color:#000; color:#000;" onclick="window.startOjo()">BORRARSE</button>
+                    </div>
+                </div>
+            `;
+            const canvas = document.getElementById('ojo-canvas');
+            const ctx = canvas.getContext('2d');
+            let score = 0, level = 1, sanity = 100, frame = 0, gameRunning = false;
+            let bullets = [], fragments = [], mouseX = 300, mouseY = 300;
+            
+            canvas.onmousemove = (e) => { const r = canvas.getBoundingClientRect(); mouseX = e.clientX - r.left; mouseY = e.clientY - r.top; };
+            
+            class Bullet {
+                constructor(x, y, angle, speed) {
+                    this.x = x; this.y = y;
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed;
+                    this.size = 8 + Math.random() * 8;
+                    this.char = String.fromCharCode(0x2600 + Math.random() * 100);
+                    this.color = Math.random() > 0.8 ? '#ff0000' : '#000000';
+                }
+                update() { this.x += this.vx; this.y += this.vy; }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.font = `bold ${this.size * 2}px 'JetBrains Mono', monospace`;
+                    ctx.fillText(this.char, this.x, this.y);
+                }
+            }
+            class Frag {
+                constructor() { this.x = 80 + Math.random() * 440; this.y = 80 + Math.random() * 440; this.rot = 0; }
+                draw() {
+                    this.rot += 0.05; ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.strokeRect(-12, -12, 24, 24);
+                    ctx.fillStyle = '#ff0000'; ctx.fillRect(-5, -5, 10, 10); ctx.restore();
+                }
+            }
+
+            window.startOjo = () => { document.getElementById('ojo-overlay').style.display = 'none'; score=0; level=1; sanity=100; bullets=[]; fragments=[]; gameRunning=true; loop(); };
+            
+            function loop() {
+                if(!gameRunning) return;
+                frame++; ctx.fillStyle = '#ffb000'; ctx.fillRect(0, 0, 600, 600);
+                const cx = 300, cy = 300;
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+                for(let i=0; i<3; i++) {
+                    const s = (frame * (1 + level * 0.2) + i * 100) % 300;
+                    ctx.globalAlpha = 1 - (s / 300); ctx.strokeRect(cx - s/2, cy - s/2, s, s);
+                }
+                ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx, cy, 45 + Math.sin(frame*0.1)*5, 0, Math.PI*2); ctx.fill();
+                
+                if(frame % (Math.max(10, 25 - level * 3)) === 0) bullets.push(new Bullet(cx, cy, Math.random() * Math.PI * 2, 2.5 + level * 0.5 + Math.random() * 2));
+                if(fragments.length < 2 && Math.random() > 0.98) fragments.push(new Frag());
+                
+                bullets = bullets.filter(b => {
+                    b.update(); b.draw();
+                    const d = Math.hypot(b.x - mouseX, b.y - mouseY);
+                    if(d < 20) { sanity -= 2; document.getElementById('ojo-sanity').textContent = Math.max(0, sanity); ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,600,600); return false; }
+                    return b.x > -100 && b.x < 700 && b.y > -100 && b.y < 700;
+                });
+                fragments = fragments.filter(f => {
+                    f.draw();
+                    if(Math.hypot(f.x - mouseX, f.y - mouseY) < 25) { score++; document.getElementById('ojo-score').textContent = score; if(score >= 50) { level++; score=0; sanity=100; document.getElementById('ojo-lvl').textContent = level; document.getElementById('ojo-sanity').textContent = 100; bullets=[]; } return false; }
+                    return true;
+                });
+                
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(mouseX, mouseY, 10, 0, Math.PI*2); ctx.fill();
+                ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(mouseX + Math.sin(frame*0.2)*12, mouseY + 18); ctx.stroke();
+                
+                if(sanity <= 0) { gameRunning = false; document.getElementById('ojo-overlay').style.display = 'flex'; document.getElementById('ojo-overlay').innerHTML = `<h1 style="font-size:2rem;">DISUELTO</h1><button class="game-btn" style="border-color:#000; color:#000;" onclick="startOjo()">REINTENTAR</button>`; return; }
+                requestAnimationFrame(loop);
+            }
+        }
+
+        /* --- SKYFALL ENGINE (EXACT PORT) --- */
+        function openSky() {
+            const body = createWin('CAÍDA DEL CIELO // 973', 'exe');
+            body.innerHTML = `
+                <div id="sky-container" class="game-window-body scanlines">
+                    <div class="game-ui-base" style="left:40px;">BLASFEMIAS: <span id="sky-score">0</span></div>
+                    <div class="game-ui-base" style="right:40px;">ETAPA: <span id="sky-lvl">1</span> | PECADOS: <span id="sky-lives">3</span></div>
+                    <canvas id="sky-canvas" class="game-canvas-base" width="600" height="600"></canvas>
+                    <div id="sky-overlay" class="game-overlay-base" style="background:rgba(0,0,0,0.95);">
+                        <h1 style="font-size: 3rem; margin:0; text-shadow:0 0 20px #ff2200;">CAÍDA DEL CIELO</h1>
+                        <p style="margin-top:15px; opacity:0.7;">DERRIBA A LOS HIJOS DE LA LUZ.</p>
+                        <button class="game-btn" onclick="window.startSky()">PROFANAR</button>
+                    </div>
+                </div>
+            `;
+            const canvas = document.getElementById('sky-canvas');
+            const ctx = canvas.getContext('2d');
+            let score = 0, level = 1, lives = 3, frame = 0, playerX = 300, gameRunning = false;
+            let bullets = [], enemies = [], eb = [];
+            const py = 560;
+            
+            class En {
+                constructor(x, y, type) {
+                    this.x = x; this.y = y; this.type = type; this.startX = x;
+                    this.seed = Math.random() * 100; this.alive = true;
+                    this.swing = 20 + Math.random() * 50;
+                    this.speedMod = 1 + (level - 1) * 0.2;
+                }
+                update() {
+                    if(!this.alive) return;
+                    if(this.type === 'seraph') { this.y += 0.15 * this.speedMod; this.x = this.startX + Math.sin(frame * 0.02 + this.seed) * this.swing; }
+                    else if(this.type === 'angel') { this.y += 0.25 * this.speedMod; this.x = this.startX + Math.cos(frame * 0.03 + this.seed) * (this.swing * 1.5); }
+                    else { this.y += 0.4 * this.speedMod; this.x = this.startX + Math.sin(frame * 0.05 + this.seed) * 30; }
+                }
+                draw() {
+                    if(!this.alive) return; ctx.save(); ctx.translate(this.x, this.y); const t = frame * 0.1 + this.seed;
+                    if(this.type === 'seraph') {
+                        ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+                        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+                        for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.beginPath(); ctx.ellipse(15 + Math.sin(t)*3, 0, 18, 6, 0, 0, Math.PI*2); ctx.stroke(); }
+                    } else if(this.type === 'angel') {
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-5, 10); ctx.lineTo(0, -10); ctx.lineTo(5, 10); ctx.fill();
+                        ctx.beginPath(); ctx.arc(0, -12, 4, 0, Math.PI*2); ctx.fill();
+                        const ws = 15 + Math.sin(t)*5; ctx.beginPath(); ctx.ellipse(-12, -2, ws, 8, 0.4, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.ellipse(12, -2, ws, 8, -0.4, 0, Math.PI*2); ctx.fill();
+                    } else {
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(0, 0, 8, 5, 0, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(8, -2, 3, 0, Math.PI*2); ctx.fill();
+                        const flap = Math.sin(t * 2) * 12; ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(-10, flap); ctx.lineTo(-5, 0); ctx.fill();
+                        ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(10, flap); ctx.lineTo(5, 0); ctx.fill();
+                    }
+                    ctx.restore();
+                }
+            }
+
+            window.startSky = () => { document.getElementById('sky-overlay').style.display = 'none'; score=0; level=1; lives=3; eb=[]; bullets=[]; spawnEnemies(); gameRunning=true; loop(); };
+            
+            function spawnEnemies() {
+                enemies = [];
+                for(let r=0; r<4; r++) for(let c=0; c<8; c++) enemies.push(new En(60+c*65, 50+r*70, r==0?'seraph':(r<2?'angel':'pigeon')));
+            }
+
+            function loop() {
+                if(!gameRunning) return; frame++; ctx.fillStyle = '#000'; ctx.fillRect(0,0,600,600);
+                ctx.fillStyle = '#ff2200'; ctx.shadowBlur=20; ctx.shadowColor='#ff2200';
+                ctx.beginPath(); ctx.moveTo(playerX-20, py+20); ctx.lineTo(playerX-15, py-5); ctx.lineTo(playerX, py-25); ctx.lineTo(playerX+15, py-5); ctx.lineTo(playerX+20, py+20); ctx.lineTo(playerX, py+10); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(playerX-12, py-15); ctx.lineTo(playerX-20, py-35); ctx.lineTo(playerX-5, py-18); ctx.moveTo(playerX+12, py-15); ctx.lineTo(playerX+20, py-35); ctx.lineTo(playerX+5, py-18); ctx.fill();
+                ctx.shadowBlur=0;
+                
+                enemies = enemies.filter(e => {
+                    e.update(); e.draw();
+                    if(e.y > 550 && e.alive) { lives--; document.getElementById('sky-lives').textContent = Math.max(0, lives); return false; }
+                    return e.alive;
+                });
+                if(enemies.length === 0) { level++; document.getElementById('sky-lvl').textContent = level; spawnEnemies(); }
+
+                if(Math.random()>0.98) {
+                    const active = enemies.filter(e=>e.alive);
+                    if(active.length>0) {
+                        const e = active[Math.floor(Math.random()*active.length)];
+                        eb.push({x:e.x, y:e.y, t:e.type, s:(e.type=='seraph'?4:2.5) * (1+(level-1)*0.1)});
+                    }
+                }
+                
+                bullets = bullets.filter(b => {
+                    b.y -= 8; ctx.fillStyle='#ff2200'; ctx.fillRect(b.x-2, b.y, 4, 15);
+                    enemies.forEach(e => { if(e.alive && Math.hypot(b.x-e.x, b.y-e.y)<20) { e.alive=false; score+=(e.type=='seraph'?150:(e.type=='angel'?70:30)); document.getElementById('sky-score').textContent = score; } });
+                    return b.y > 0;
+                });
+                
+                eb = eb.filter(b => {
+                    b.y += b.s; ctx.fillStyle='#fff';
+                    if(b.t=='seraph'){ ctx.fillStyle='#fc0'; ctx.fillRect(b.x-1, b.y, 3, 20); }
+                    else if(b.t=='angel'){ ctx.beginPath(); ctx.ellipse(b.x, b.y, 4, 10, Math.sin(frame*0.1), 0, Math.PI*2); ctx.fill(); }
+                    else { ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI*2); ctx.fill(); }
+                    if(Math.hypot(b.x-playerX, b.y-py)<25) { lives--; document.getElementById('sky-lives').textContent = Math.max(0, lives); return false; }
+                    return b.y < 600;
+                });
+                
+                if(lives <= 0) { gameRunning=false; document.getElementById('sky-overlay').style.display='flex'; document.getElementById('sky-overlay').innerHTML=`<h1>PURIFICADO</h1><button class="game-btn" onclick="startSky()">REINTENTAR</button>`; return; }
+                requestAnimationFrame(loop);
+            }
+            const handler = (e) => {
+                if (!document.body.contains(canvas)) {
+                    window.removeEventListener('keydown', handler);
+                    return;
+                }
+                if (['ArrowLeft', 'ArrowRight', 'ArrowUp', ' '].includes(e.key)) {
+                    e.preventDefault();
+                    if(e.key == 'ArrowLeft' && playerX>30) playerX -= 25; 
+                    if(e.key == 'ArrowRight' && playerX<570) playerX += 25;
+                    if(e.key == ' ' || e.key == 'ArrowUp') if(bullets.length<4) bullets.push({x:playerX, y:py-20});
+                }
+            };
+            window.addEventListener('keydown', handler);
+        }
+
+        function toggleStartMenu() {
+            const menu = document.getElementById('start-menu');
+            const isVisible = menu.style.display === 'flex';
+            menu.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) updateRecentFiles();
+        }
+
+        function updateRecentFiles() {
+            const list = document.getElementById('recent-files-list');
+            list.innerHTML = "";
+            Object.keys(DATABASE).slice(-5).reverse().forEach(key => {
+                const f = DATABASE[key];
+                const item = document.createElement('div');
+                item.className = 'start-item';
+                item.innerHTML = `<span>${f.type === 'mp4' ? '🎬' : '📝'}</span> ${f[currentLang].title}`;
+                item.onclick = () => { openWindow(f); toggleStartMenu(); };
+                list.appendChild(item);
+            });
+        }
+
+        function openApp(type) {
+            const appNames = { 'video': 'Video Player', 'image': 'Photo Gallery', 'txt': 'NotePad' };
+            const body = createWin(appNames[type]);
+            body.innerHTML = `
+                <div style="margin-bottom:20px; color:#555; font-size:0.8rem; font-family:var(--font-main);">CHOOSE A FILE TO OPEN:</div>
+                <div class="app-grid"></div>
+            `;
+            
+            const grid = body.querySelector('.app-grid');
+            Object.keys(DATABASE).forEach(key => {
+                const f = DATABASE[key];
+                const fType = f.type === 'mp4' ? 'video' : (f.type === 'jpg' ? 'image' : 'txt');
+                if (fType !== type) return;
+                if (f.private && !isUnlocked) return;
+
+                const icon = document.createElement('div');
+                icon.className = 'icon';
+                icon.innerHTML = `
+                    <div class="icon-img icon-${f.type === 'mp4' ? 'vid' : (f.type === 'jpg' ? 'img-file' : 'txt')}"></div>
+                    <div class="icon-label">${f[currentLang] ? f[currentLang].title : f['es'].title}</div>
+                `;
+                icon.onclick = () => { body.closest('.desktop-window').remove(); openWindow(f); };
+                grid.appendChild(icon);
+            });
+            
+            if (document.getElementById('start-menu').style.display === 'flex') toggleStartMenu();
+        }
+
+        function handleCommand(raw) {
+            const v = raw.trim(); if(!v) return;
+            print(`${termPrompt.textContent} ${v}`, 'prompt');
+            
+            const lowV = v.toLowerCase();
+            const parts = v.split(/\s+/);
+            const cmd = parts[0].toLowerCase();
+            const arg = parts[1] ? parts[1] : null;
+
+            // Password check for desktop access
+            if (v === '4C N4 RF' || (cmd === 'enter_remote' && v.includes('4C N4 RF')) || (cmd === 'login' && v.includes('4C N4 RF'))) {
+                initiateRemoteAccess();
+                return;
+            }
+
+            if (cmd === 'enter_remote' || cmd === 'login') {
+                print("AUTHORIZATION REQUIRED. ENTER ACCESS KEY:", "system-msg");
+                isWaitingForKey = true;
+                termPrompt.textContent = "KEY: ";
+                return;
+            }
+
+            if (isWaitingForKey) {
+                if (v.toLowerCase() === 'flor') {
+                    isUnlocked = true;
+                    isWaitingForKey = false;
+                    termPrompt.textContent = LOCALES[currentLang].prompt;
+                    print("ACCESS GRANTED. DATA RECOVERED.", "system-msg");
+                    COMMANDS.ls();
+                } else {
+                    print("INVALID KEY. ACCESS DENIED.", "system-msg");
+                    isWaitingForKey = false;
+                    termPrompt.textContent = LOCALES[currentLang].prompt;
+                }
+                return;
+            }
+
+            if (cmd === 'enter_remote' || cmd === 'remote' || cmd === 'desktop' || cmd === 'connect' || cmd === 'login') {
+                if (!arg) {
+                    print("AUTHENTICATION REQUIRED. PLEASE ENTER ACCESS KEY.", "system-msg");
+                } else {
+                    print("INVALID ACCESS KEY. DENIED.", "system-msg");
+                }
+                return;
+            }
+
+            if (cmd === 'status') {
+                print("GATEWAY: F.F._RECOVERY.BAK", "system-msg");
+                print("TARGET: ****** ****** (Evidence #404)");
+                print("CONNECTION: STABLE");
+                print("ENCRYPTION: AES-256 (BACKDOOR_ACTIVE)");
+                return;
+            }
+
+            if (cmd === 'cat' || cmd === 'open') {
+                const f = Object.values(DATABASE).find(x => (x[currentLang] && x[currentLang].title === arg) || (x['es'] && x['es'].title === arg) || Object.keys(DATABASE).find(k=>k===arg));
+                if (f) openWindow(f); else print("FILE NOT FOUND.");
+            } else if (COMMANDS[cmd]) {
+                const res = COMMANDS[cmd](arg);
+                if(res) print(res);
+            } else {
+                print("COMMAND NOT FOUND. TYPE 'HELP' FOR OPTIONS.");
+            }
+        }
+
+        input.addEventListener('keydown', (e) => { if(e.key === 'Enter') { handleCommand(input.value); input.value = ''; } });
+        
+        // Global Escape Key to close windows
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // 1. Close image/text visualizer if open
+                if (windowOverlay.style.display === 'flex') {
+                    closeWindow();
+                    return;
+                }
+                
+                // 2. Close validation puzzle if open
+                if (captchaOverlay.style.display === 'flex') {
+                    captchaOverlay.style.display = 'none';
+                    return;
+                }
+
+                // 3. Close the last desktop window (folder/game)
+                const windows = document.querySelectorAll('.desktop-window');
+                if (windows.length > 0) {
+                    const lastWindow = windows[windows.length - 1];
+                    lastWindow.remove();
+                    return;
+                }
+
+                // 4. Close start menu
+                const menu = document.getElementById('start-menu');
+                if (menu && menu.style.display === 'flex') menu.style.display = 'none';
+            }
+        });
+
+        renderHeader();
+        setTimeout(() => setLang('es'), 500);
+    </script>
+</body>
+</html>
+
