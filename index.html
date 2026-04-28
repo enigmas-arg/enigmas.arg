@@ -941,9 +941,9 @@
             body.style.padding = '0';
             body.style.overflow = 'hidden';
             body.innerHTML = `
-                <div class="scanlines" style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#050500; color:#ffcc00; text-align:center;">
-                    <div id="dynamic-countdown" style="font-size: 3.8rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; text-shadow: 0 0 25px rgba(255,204,0,0.8); margin: 0 0 20px 0; line-height:1; letter-spacing: 2px;" class="glitch-text">--d:--h:--m:--s</div>
-                    <p style="font-size: 1.2rem; text-transform: uppercase; letter-spacing: 6px; margin: 0 0 35px 0; opacity:0.9; font-weight:bold;">PARA LA REVELACIÓN</p>
+                <div class="scanlines" style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#050500; color:#ffcc00; text-align:center; padding: 20px; box-sizing: border-box;">
+                    <div id="dynamic-countdown" style="font-size: clamp(2rem, 10vw, 4rem); font-family: 'JetBrains Mono', monospace; font-weight: bold; text-shadow: 0 0 25px rgba(255,204,0,0.8); margin: 0 0 20px 0; line-height:1; letter-spacing: 2px;" class="glitch-text">--d:--h:--m:--s</div>
+                    <p style="font-size: clamp(0.9rem, 4vw, 1.2rem); text-transform: uppercase; letter-spacing: 4px; margin: 0 0 35px 0; opacity:0.9; font-weight:bold;">PARA LA REVELACIÓN</p>
                     <button class="game-btn" style="border-color:#ffcc00; color:#ffcc00; padding: 10px 25px; font-size:0.9rem; box-shadow:0 0 15px rgba(255,204,0,0.2);" onclick="clearInterval(window.countdownInterval); this.closest('.desktop-window').remove()" onmouseover="this.style.background='#ffcc00'; this.style.color='#000'; this.style.boxShadow='0 0 25px #ffcc00';" onmouseout="this.style.background='transparent'; this.style.color='#ffcc00'; this.style.boxShadow='0 0 15px rgba(255,204,0,0.2)';">CERRAR ADVERTENCIA</button>
                 </div>
             `;
